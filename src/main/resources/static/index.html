@@ -112,7 +112,8 @@
 <body>
 
 <div class="container" id="totem-interface">
-    <h1>Autoatendimento</h1>
+    <h1 id="nome-empresa">Autoatendimento</h1>
+    <div id="erro-empresa" style="display:none; color:#b91c1c; font-size:18px;"></div>
 
     <div class="section" id="secao-servicos">
         <h2>1. Selecione uma Opção</h2>
@@ -145,119 +146,122 @@
 </div>
 
 <script>
+    // O link do totem diz de qual empresa ele é: /index.html?empresa=padaria-central
+    const empresa = new URLSearchParams(location.search).get('empresa');
+    const base = '/api/publico/' + encodeURIComponent(empresa || '');
     let servicoSelecionadoId = null;
+    let idSenhaGerada = null;
 
-    window.onload = () => {
-        carregarServicos();
+    window.onload = async () => {
+        if (!empresa) {
+            mostrarErro('Link incompleto. Use o link do totem que aparece na tela de gestão da empresa. ' +
+                'É funcionário? <a href="/login.html">Entrar</a>');
+            return;
+        }
+        try {
+            const dados = await buscar(base);
+            document.getElementById('nome-empresa').innerText = dados.nomeFantasia;
+            await carregarServicos();
+        } catch (erro) {
+            mostrarErro(erro.message);
+        }
     };
 
-    // 1. Busca Serviços no Banco
-    async function carregarServicos() {
-        const resp = await fetch('/servicos');
-        const servicos = await resp.json();
-        const container = document.getElementById('container-servicos');
+    /** Chama a API pública e devolve o JSON (ou lança um erro com a mensagem do servidor). */
+    async function buscar(url, opcoes) {
+        const resp = await fetch(url, opcoes);
+        const dados = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(dados.mensagem || 'Erro ao falar com o servidor.');
+        return dados;
+    }
 
+    function mostrarErro(html) {
+        document.getElementById('secao-servicos').style.display = 'none';
+        const caixa = document.getElementById('erro-empresa');
+        caixa.innerHTML = html;
+        caixa.style.display = 'block';
+    }
+
+    /** Cria um botão com o texto informado (innerText evita HTML malicioso). */
+    function criarBotao(texto, aoClicar) {
+        const btn = document.createElement('button');
+        btn.className = "btn-opcao";
+        btn.innerText = texto;
+        btn.onclick = aoClicar;
+        return btn;
+    }
+
+    // 1. Busca os serviços da empresa
+    async function carregarServicos() {
+        const servicos = await buscar(base + '/servicos');
+        const container = document.getElementById('container-servicos');
+        container.innerHTML = "";
+        if (servicos.length === 0) {
+            container.innerText = "Nenhum serviço cadastrado ainda.";
+        }
         servicos.forEach(s => {
-            const btn = document.createElement('button');
-            btn.className = "btn-opcao";
-            btn.innerText = s.nome;
-            btn.onclick = () => selecionarServico(s.id, btn);
+            const btn = criarBotao(s.nome, () => selecionarServico(s.id, btn));
             container.appendChild(btn);
         });
     }
 
-    // 2. Lógica ao clicar no serviço
+    // 2. Ao clicar no serviço: esconde serviços e mostra prioridades
     function selecionarServico(id, botao) {
         servicoSelecionadoId = id;
-
-        // Visual: Marcar botão selecionado
         document.querySelectorAll("#container-servicos .btn-opcao").forEach(b => b.classList.remove("selecionado"));
         botao.classList.add("selecionado");
-
-        // Esconde serviços e mostra prioridades
         document.getElementById('secao-servicos').style.display = 'none';
-
-        // Carregar prioridades e mostrar seção
         carregarPrioridades();
         document.getElementById('secao-prioridades').style.display = 'block';
     }
 
-    // 3. Busca Prioridades no Banco
+    // 3. Busca as prioridades da empresa
     async function carregarPrioridades() {
-        const resp = await fetch('/prioridades');
-        const prioridades = await resp.json();
+        const prioridades = await buscar(base + '/prioridades');
         const container = document.getElementById('container-prioridades');
-        container.innerHTML = ""; // Limpa para não duplicar
-
-        prioridades.forEach(p => {
-            const btn = document.createElement('button');
-            btn.className = "btn-opcao";
-            btn.innerHTML = `${p.nome}`;
-            btn.onclick = () => gerarSenhaFinal(p.id);
-            container.appendChild(btn);
-        });
+        container.innerHTML = "";
+        prioridades.forEach(p => container.appendChild(criarBotao(p.nome, () => gerarSenhaFinal(p.id))));
     }
 
-    function voltarParaServicos(){
-
-        // Resetar serviço selecionado
+    function voltarParaServicos() {
         servicoSelecionadoId = null;
-
-        // Remover seleção visual dos botões
-        document.querySelectorAll("#container-servicos .btn-opcao")
-            .forEach(b => b.classList.remove("selecionado"));
-
-        // Voltar telas
+        document.querySelectorAll("#container-servicos .btn-opcao").forEach(b => b.classList.remove("selecionado"));
         document.getElementById('secao-prioridades').style.display = 'none';
         document.getElementById('secao-servicos').style.display = 'block';
     }
 
-    // 4. Envia para o Backend e mostra o resultado
+    // 4. Gera a senha e mostra o resultado
     async function gerarSenhaFinal(prioridadeId) {
-        const payload = {
-            servicoId: servicoSelecionadoId,
-            prioridadeId: prioridadeId
-        };
-
         try {
-            const resp = await fetch('/senha', {
+            const senha = await buscar(base + '/senhas', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ servicoId: servicoSelecionadoId, prioridadeId: prioridadeId })
             });
-
-            if (resp.ok) {
-                const senha = await resp.json();
-                idSenhaGerada = senha.id;
-                exibirResultado(senha);
-            }
-        } catch (error) {
-            alert("Erro ao conectar com o servidor.");
+            idSenhaGerada = senha.id;
+            exibirResultado(senha);
+        } catch (erro) {
+            alert(erro.message);
         }
     }
 
     function exibirResultado(senha) {
-        // Esconde as seleções e mostra a senha grande
         document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
         document.getElementById('resultado').style.display = 'block';
         document.getElementById('senhaCodigo').innerText = senha.codigo;
         document.getElementById('detalhesSenha').innerText = `Serviço: ${senha.servico}`;
 
-        // Auto-reset após 10 segundos para o próximo cliente
+        // Volta ao início depois de 10 segundos para o próximo cliente
         setTimeout(() => location.reload(), 10000);
     }
+
     async function imprimirSenha() {
         if (!idSenhaGerada) return;
-
         try {
-            const resp = await fetch(`/senha/${idSenhaGerada}/imprimir`, { method: 'POST' });
-            if (resp.ok) {
-                alert("Impressão enviada com sucesso!");
-            } else {
-                alert("Erro ao solicitar impressão ao servidor.");
-            }
-        } catch (error) {
-            console.error("Erro na comunicação:", error);
+            await buscar(`${base}/senhas/${idSenhaGerada}/imprimir`, { method: 'POST' });
+            alert("Impressão enviada com sucesso!");
+        } catch (erro) {
+            alert(erro.message);
         }
     }
 </script>

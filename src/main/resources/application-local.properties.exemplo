@@ -1,0 +1,28 @@
+# =====================================================================
+# MODELO de configuração local.
+#
+# 1. Copie este arquivo para:  src/main/resources/application-local.properties
+# 2. Preencha com os SEUS valores.
+#
+# O application-local.properties está no .gitignore: suas senhas ficam
+# só no seu computador e nunca vão para o GitHub.
+# =====================================================================
+
+# Senha do PostgreSQL (não precisa se você já usa a variável de ambiente DB_PASSWORD)
+#spring.datasource.password=SUA_SENHA_DO_POSTGRES
+
+# Firebase: Console > Configurações do projeto > Seus apps > App da Web (firebaseConfig)
+firebase.project-id=seu-projeto
+firebase.api-key=AIza...
+firebase.auth-domain=seu-projeto.firebaseapp.com
+firebase.app-id=1:000000000000:web:0000000000000000
+
+# Mude para true depois de ativar "Telefone" no Firebase (login por SMS)
+firebase.sms-habilitado=false
+
+# Seu e-mail: no primeiro login com ele você vira GM (administrador geral do sistema)
+app.gm-emails=seu-email@gmail.com
+
+# (Opcional) JSON da conta de serviço do Firebase, para o GM trocar senhas direto.
+# Use barras normais no caminho, mesmo no Windows. Guarde FORA da pasta do projeto.
+#firebase.credenciais=C:/chaves/firebase-conta-servico.json

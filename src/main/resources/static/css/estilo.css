@@ -1,0 +1,151 @@
+/* =====================================================================
+   Estilo compartilhado por todas as telas do sistema
+   ===================================================================== */
+:root {
+    --azul: #1d4ed8;
+    --azul-escuro: #1e3a8a;
+    --verde: #15803d;
+    --vermelho: #b91c1c;
+    --amarelo: #a16207;
+    --cinza: #6b7280;
+    --borda: #e5e7eb;
+    --fundo: #f3f4f6;
+    --texto: #111827;
+    --branco: #ffffff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--fundo);
+    color: var(--texto);
+}
+
+a { color: var(--azul); }
+
+/* ---------- barra superior ---------- */
+.topo {
+    background: var(--azul-escuro);
+    color: var(--branco);
+    padding: 12px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.topo h1 { font-size: 20px; margin: 0; }
+.topo .usuario { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+
+/* ---------- conteúdo ---------- */
+.conteudo { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+
+.cartao {
+    background: var(--branco);
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.cartao h2 { margin-top: 0; font-size: 18px; border-bottom: 2px solid var(--azul); padding-bottom: 8px; }
+
+.centralizado { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.caixa-login { width: 100%; max-width: 420px; }
+
+/* ---------- formulários ---------- */
+label { display: block; font-size: 13px; color: var(--cinza); margin: 8px 0 4px; }
+input, select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 15px;
+    background: var(--branco);
+}
+input:focus, select:focus { outline: 2px solid #93c5fd; border-color: var(--azul); }
+
+.linha { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.linha > * { flex: 1 1 160px; }
+
+/* ---------- botões ---------- */
+button, .botao {
+    display: inline-block;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--azul);
+    color: var(--branco);
+    text-decoration: none;
+    text-align: center;
+}
+button:hover, .botao:hover { filter: brightness(.92); }
+button:disabled { opacity: .6; cursor: wait; }
+.botao-largo { width: 100%; margin-top: 12px; }
+.secundario { background: #e5e7eb; color: var(--texto); }
+.perigo { background: var(--vermelho); }
+.sucesso { background: var(--verde); }
+.pequeno { padding: 6px 10px; font-size: 13px; }
+.google { background: var(--branco); color: var(--texto); border: 1px solid #d1d5db; }
+
+/* ---------- tabelas ---------- */
+.tabela-rolagem { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+th, td { border-bottom: 1px solid var(--borda); padding: 10px 8px; text-align: left; vertical-align: middle; }
+th { background: #eff6ff; color: var(--azul-escuro); font-weight: 600; }
+td .pequeno { margin: 2px; }
+
+/* ---------- abas ---------- */
+.abas { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 16px; }
+.abas button { background: #e5e7eb; color: var(--texto); }
+.abas button.ativa { background: var(--azul); color: var(--branco); }
+.aba { display: none; }
+.aba.ativa { display: block; }
+
+/* ---------- etiquetas de situação ---------- */
+.etiqueta { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.EM_TESTE { background: #dbeafe; color: var(--azul-escuro); }
+.ATIVA { background: #dcfce7; color: var(--verde); }
+.VENCIDA { background: #fef3c7; color: var(--amarelo); }
+.BLOQUEADA, .INATIVO { background: #fee2e2; color: var(--vermelho); }
+.DESLIGADO { background: #f3f4f6; color: var(--cinza); }
+
+/* ---------- números do painel do GM ---------- */
+.numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.numero { background: var(--branco); border-radius: 10px; padding: 16px; box-shadow: 0 1px 4px rgba(0, 0, 0, .08); }
+.numero strong { display: block; font-size: 28px; color: var(--azul-escuro); }
+.numero span { font-size: 13px; color: var(--cinza); }
+/* dentro de um cartão (ex.: "Atendimento de hoje"): sem sombra, com borda */
+.cartao .numeros { margin-bottom: 16px; }
+.cartao .numero { box-shadow: none; border: 1px solid var(--borda); }
+
+/* ---------- avisos ---------- */
+.alerta { padding: 12px 14px; border-radius: 8px; margin: 12px 0; font-size: 14px; }
+.alerta.erro { background: #fee2e2; color: var(--vermelho); }
+.alerta.info { background: #dbeafe; color: var(--azul-escuro); }
+.alerta.ok { background: #dcfce7; color: var(--verde); }
+.oculto { display: none !important; }
+.texto-cinza { color: var(--cinza); font-size: 13px; }
+.separador { display: flex; align-items: center; gap: 8px; color: var(--cinza); font-size: 13px; margin: 16px 0; }
+.separador::before, .separador::after { content: ""; flex: 1; border-top: 1px solid var(--borda); }
+
+#aviso-flutuante {
+    position: fixed; right: 16px; bottom: 16px; max-width: 360px; z-index: 1000;
+    padding: 14px 16px; border-radius: 8px; color: var(--branco); font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+}
+#aviso-flutuante.ok { background: var(--verde); }
+#aviso-flutuante.erro { background: var(--vermelho); }
+
+code.copiar { background: #f3f4f6; padding: 4px 8px; border-radius: 4px; word-break: break-all; }
+/* botão "Copiar" criado por ativarBotoesCopiar() em app.js */
+.botao-copiar { margin-left: 8px; vertical-align: middle; }
+
+@media (max-width: 640px) {
+    .topo { padding: 12px 16px; }
+    .cartao { padding: 16px; }
+}

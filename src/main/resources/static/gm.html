@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Geral (GM) - Sistema de Senhas</title>
+    <link rel="stylesheet" href="/css/estilo.css">
+    <style>
+        dialog { border: none; border-radius: 10px; padding: 0; width: min(560px, 95vw); box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+        dialog::backdrop { background: rgba(0, 0, 0, .4); }
+        dialog form { padding: 20px; }
+        dialog h3 { margin-top: 0; }
+        .acoes-dialogo { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        .filtro { max-width: 360px; margin-bottom: 8px; }
+        td small { color: var(--cinza); }
+    </style>
+</head>
+<body>
+<header class="topo">
+    <h1>Painel Geral (GM)</h1>
+    <div class="usuario">
+        <span>Olá, <strong id="nome-usuario"></strong></span>
+        <button type="button" id="btn-sair" class="pequeno perigo">Sair</button>
+    </div>
+</header>
+
+<main class="conteudo">
+    <nav class="abas">
+        <button type="button" data-aba="resumo" class="ativa">Resumo</button>
+        <button type="button" data-aba="empresas">Empresas</button>
+        <button type="button" data-aba="usuarios">Usuários</button>
+        <button type="button" data-aba="pagamentos">Pagamentos</button>
+        <button type="button" data-aba="logins">Logins</button>
+    </nav>
+
+    <!-- ============ RESUMO ============ -->
+    <section id="aba-resumo" class="aba ativa">
+        <div class="numeros" id="numeros"></div>
+        <div class="cartao">
+            <h2>Mensalidade padrão</h2>
+            <p>Valor cobrado por mês de cada empresa depois do período grátis:
+                <strong id="mensalidade-padrao"></strong>
+                <button type="button" class="pequeno secundario" id="btn-mensalidade-padrao">Alterar</button></p>
+            <p class="texto-cinza">Vale para todas as empresas, menos as que têm valor próprio (botão "Mensalidade" na aba Empresas).</p>
+        </div>
+    </section>
+
+    <!-- ============ EMPRESAS ============ -->
+    <section id="aba-empresas" class="aba cartao">
+        <h2>Empresas</h2>
+        <input id="busca-empresa" class="filtro" placeholder="Buscar por nome ou CNPJ">
+        <div class="tabela-rolagem">
+            <table>
+                <thead><tr><th>Empresa</th><th>CNPJ</th><th>Situação</th><th>Vencimento</th><th>Dias</th><th>Mensalidade</th><th>Ações</th></tr></thead>
+                <tbody id="tabela-empresas"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ============ USUÁRIOS ============ -->
+    <section id="aba-usuarios" class="aba cartao">
+        <h2>Usuários</h2>
+        <select id="filtro-usuarios" class="filtro"></select>
+        <p class="texto-cinza" id="info-contas"></p>
+        <div class="tabela-rolagem">
+            <table>
+                <thead><tr><th>Nome</th><th>E-mail</th><th>Empresa</th><th>Perfil</th><th>Situação</th><th>Último acesso</th><th>Ações</th></tr></thead>
+                <tbody id="tabela-usuarios"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ============ PAGAMENTOS ============ -->
+    <section id="aba-pagamentos" class="aba cartao">
+        <h2>Pagamentos</h2>
+        <select id="filtro-pagamentos" class="filtro"></select>
+        <div class="tabela-rolagem">
+            <table>
+                <thead><tr><th>Data</th><th>Empresa</th><th>Valor</th><th>Dias</th><th>Forma</th><th>Vencimento</th><th>Observação</th><th>Registrado por</th></tr></thead>
+                <tbody id="tabela-pagamentos"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ============ LOGINS ============ -->
+    <section id="aba-logins" class="aba cartao">
+        <h2>Últimos logins</h2>
+        <select id="filtro-logins" class="filtro"></select>
+        <div class="tabela-rolagem">
+            <table>
+                <thead><tr><th>Data e hora</th><th>Usuário</th><th>E-mail</th><th>Empresa</th><th>Como entrou</th><th>IP</th></tr></thead>
+                <tbody id="tabela-logins"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<!-- ============ JANELA: EDITAR EMPRESA ============ -->
+<dialog id="dlg-empresa">
+    <form method="dialog" id="form-empresa">
+        <h3>Editar empresa</h3>
+        <label>Razão social</label><input id="emp-razao" required>
+        <label>Nome fantasia</label><input id="emp-fantasia" required>
+        <div class="linha">
+            <div><label>CNPJ</label><input id="emp-cnpj" required></div>
+            <div><label>Telefone</label><input id="emp-telefone"></div>
+        </div>
+        <div class="linha">
+            <div><label>Responsável</label><input id="emp-responsavel" required></div>
+            <div><label>CPF do responsável</label><input id="emp-cpf" required></div>
+        </div>
+        <label>E-mail</label><input id="emp-email" type="email" required>
+        <p class="texto-cinza">Se o CNPJ mudar, o serial é recalculado.</p>
+        <div class="acoes-dialogo">
+            <button type="button" class="secundario fechar">Cancelar</button>
+            <button type="submit" class="sucesso">Salvar</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- ============ JANELA: PAGAMENTO ============ -->
+<dialog id="dlg-pagamento">
+    <form method="dialog" id="form-pagamento">
+        <h3>Registrar pagamento</h3>
+        <p id="pag-empresa" class="texto-cinza"></p>
+        <div class="linha">
+            <div><label>Valor (R$)</label><input id="pag-valor" type="number" step="0.01" min="0" required></div>
+            <div><label>Dias liberados</label><input id="pag-dias" type="number" min="1" value="30" required></div>
+        </div>
+        <label>Forma</label>
+        <select id="pag-forma">
+            <option value="PIX">Pix</option>
+            <option value="MANUAL">Manual / dinheiro</option>
+            <option value="BOLETO">Boleto</option>
+            <option value="CARTAO">Cartão</option>
+        </select>
+        <label>Observação</label><input id="pag-obs" maxlength="255">
+        <p class="texto-cinza">Os dias são somados ao vencimento atual (ou a partir de hoje, se já venceu).</p>
+        <div class="acoes-dialogo">
+            <button type="button" class="secundario fechar">Cancelar</button>
+            <button type="submit" class="sucesso">Registrar</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- ============ JANELA: VENCIMENTO ============ -->
+<dialog id="dlg-vencimento">
+    <form method="dialog" id="form-vencimento">
+        <h3>Alterar vencimento</h3>
+        <p id="venc-empresa" class="texto-cinza"></p>
+        <label>Nova data de vencimento</label><input id="venc-data" type="date" required>
+        <div class="acoes-dialogo">
+            <button type="button" class="secundario fechar">Cancelar</button>
+            <button type="submit" class="sucesso">Salvar</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- ============ JANELA: MENSALIDADE (padrão ou de uma empresa) ============ -->
+<dialog id="dlg-mensalidade">
+    <form method="dialog" id="form-mensalidade">
+        <h3 id="mens-titulo">Mensalidade</h3>
+        <p id="mens-info" class="texto-cinza"></p>
+        <label class="oculto" id="mens-usar-padrao-rotulo"><input type="checkbox" id="mens-usar-padrao" style="width:auto;"> Usar o valor padrão</label>
+        <label>Valor por mês (R$)</label><input id="mens-valor" type="number" step="0.01" min="0.01" required>
+        <div class="acoes-dialogo">
+            <button type="button" class="secundario fechar">Cancelar</button>
+            <button type="submit" class="sucesso">Salvar</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- ============ JANELA: EDITAR USUÁRIO ============ -->
+<dialog id="dlg-usuario">
+    <form method="dialog" id="form-usuario">
+        <h3>Editar usuário</h3>
+        <label>Nome</label><input id="usu-nome" required>
+        <label>E-mail</label><input id="usu-email" type="email" required>
+        <p class="texto-cinza oculto" id="usu-email-fixo">O e-mail não pode mudar depois do primeiro acesso.</p>
+        <label>Celular (opcional)</label><input id="usu-telefone">
+        <label>Perfil</label>
+        <select id="usu-perfil">
+            <option value="ADMIN_EMPRESA">Administrador da empresa</option>
+            <option value="ATENDENTE">Atendente</option>
+            <option value="GM">GM (administrador geral)</option>
+        </select>
+        <div class="acoes-dialogo">
+            <button type="button" class="secundario fechar">Cancelar</button>
+            <button type="submit" class="sucesso">Salvar</button>
+        </div>
+    </form>
+</dialog>
+
+<script type="module">
+    import { exigirLogin, api, sair, esc, avisar, dataHora, data, NOME_PERFIL, NOME_SITUACAO, ativarBotoesCopiar } from '/js/app.js';
+
+    const $ = id => document.getElementById(id);
+    const eu = await exigirLogin(['GM']);
+    $('nome-usuario').textContent = eu.nome;
+    $('btn-sair').addEventListener('click', sair);
+
+    let empresas = [], usuarios = [], capacidades = { alteracaoDireta: false };
+    let empresaEmEdicao = null, usuarioEmEdicao = null;
+    let mensalidadePadrao = 0;
+
+    const dinheiro = v => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const cnpj = c => String(c).replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+    const PROVEDOR = { 'password': 'E-mail e senha', 'google.com': 'Google', 'phone': 'SMS' };
+
+    /** Executa uma ação, mostra o aviso e recarrega os dados. */
+    async function executar(acao, mensagemOk) {
+        try {
+            await acao();
+            if (mensagemOk) avisar(mensagemOk);
+            await carregarTudo();
+        } catch (erro) {
+            avisar(erro.message, 'erro');
+        }
+    }
+
+    // ---------------------------------------------------------------- abas
+    document.querySelectorAll('.abas button').forEach(botao => botao.addEventListener('click', () => {
+        document.querySelectorAll('.abas button').forEach(b => b.classList.toggle('ativa', b === botao));
+        document.querySelectorAll('.aba').forEach(a => a.classList.toggle('ativa', a.id === 'aba-' + botao.dataset.aba));
+    }));
+
+    // ---------------------------------------------------------------- carregar
+    async function carregarTudo() {
+        const [resumo, listaEmpresas, mensalidade] = await Promise.all([
+            api('/api/gm/resumo'), api('/api/gm/empresas'), api('/api/gm/mensalidade')]);
+        empresas = listaEmpresas;
+        mensalidadePadrao = mensalidade.valorMensalPadrao;
+        $('mensalidade-padrao').textContent = dinheiro(mensalidadePadrao);
+        mostrarResumo(resumo);
+        mostrarEmpresas();
+        preencherFiltros();
+        await Promise.all([carregarUsuarios(), carregarPagamentos(), carregarLogins()]);
+    }
+
+    function mostrarResumo(r) {
+        const itens = [
+            [r.totalEmpresas, 'Empresas cadastradas'], [r.emTeste, 'Em período grátis'], [r.ativas, 'Ativas (pagantes)'],
+            [r.vencidas, 'Vencidas'], [r.bloqueadas, 'Bloqueadas'], [r.vencendoEm7Dias, 'Vencem em até 7 dias'],
+            [r.totalUsuarios, 'Usuários'], [r.loginsHoje, 'Logins hoje'], [dinheiro(r.recebidoNoMes), 'Recebido no mês']
+        ];
+        $('numeros').innerHTML = itens.map(([valor, rotulo]) =>
+            `<div class="numero"><strong>${esc(valor)}</strong><span>${esc(rotulo)}</span></div>`).join('');
+    }
+
+    function mostrarEmpresas() {
+        const busca = $('busca-empresa').value.trim().toLowerCase();
+        const numeros = busca.replace(/\D/g, '');
+        const filtradas = empresas.filter(e => !busca
+            || e.nomeFantasia.toLowerCase().includes(busca) || e.razaoSocial.toLowerCase().includes(busca)
+            || (numeros && e.cnpj.includes(numeros)));
+        $('tabela-empresas').innerHTML = filtradas.map(e => `
+            <tr>
+                <td><strong>${esc(e.nomeFantasia)}</strong><br><small>${esc(e.razaoSocial)} · ${esc(e.email)}</small><br>
+                    <small>Serial: <span data-copiar>${esc(e.serial)}</span></small></td>
+                <td style="white-space:nowrap;">${esc(cnpj(e.cnpj))}</td>
+                <td><span class="etiqueta ${e.situacao}">${esc(NOME_SITUACAO[e.situacao])}</span></td>
+                <td>${data(e.dataVencimento)}</td>
+                <td>${e.diasRestantes < 0 ? '-' : esc(e.diasRestantes)}</td>
+                <td style="white-space:nowrap;">${dinheiro(e.valorMensal)}<br><small>${e.valorMensalProprio ? 'valor próprio' : 'padrão'}</small></td>
+                <td>
+                    <button class="pequeno sucesso" data-acao="pagamento" data-id="${e.id}">Pagamento</button>
+                    <button class="pequeno secundario" data-acao="editar-empresa" data-id="${e.id}">Editar</button>
+                    <button class="pequeno secundario" data-acao="vencimento" data-id="${e.id}">Vencimento</button>
+                    <button class="pequeno secundario" data-acao="mensalidade" data-id="${e.id}">Mensalidade</button>
+                    <button class="pequeno secundario" data-acao="status" data-id="${e.id}">${e.status === 'BLOQUEADA' ? 'Desbloquear' : 'Bloquear'}</button>
+                    <button class="pequeno secundario" data-acao="serial" data-id="${e.id}">Novo serial</button>
+                    <button class="pequeno secundario" data-acao="ver-usuarios" data-id="${e.id}">Usuários</button>
+                    <button class="pequeno perigo" data-acao="excluir-empresa" data-id="${e.id}">Excluir</button>
+                </td>
+            </tr>`).join('') || '<tr><td colspan="7" class="texto-cinza">Nenhuma empresa encontrada.</td></tr>';
+        ativarBotoesCopiar($('tabela-empresas'));
+    }
+
+    /** Os três filtros por empresa (usuários, pagamentos, logins) usam a mesma lista. */
+    function preencherFiltros() {
+        const opcoes = '<option value="">Todas as empresas</option>' +
+            empresas.map(e => `<option value="${e.id}">${esc(e.nomeFantasia)}</option>`).join('');
+        ['filtro-usuarios', 'filtro-pagamentos', 'filtro-logins'].forEach(id => {
+            const valorAtual = $(id).value;
+            $(id).innerHTML = opcoes;
+            $(id).value = valorAtual;
+        });
+    }
+
+    /** Monta "?empresaId=X" quando um filtro estiver escolhido. */
+    const filtro = id => $(id).value ? `?empresaId=${$(id).value}` : '';
+
+    async function carregarUsuarios() {
+        [usuarios, capacidades] = await Promise.all([api('/api/gm/usuarios' + filtro('filtro-usuarios')), api('/api/gm/capacidades')]);
+        $('info-contas').textContent = capacidades.alteracaoDireta
+            ? 'Firebase completo: você pode definir a senha dos usuários diretamente.'
+            : 'Para trocar a senha, envie o e-mail de redefinição. (Definir senha direto exige a conta de serviço do Firebase.)';
+        $('tabela-usuarios').innerHTML = usuarios.map(u => {
+            const situacao = !u.ativo ? '<span class="etiqueta INATIVO">Desativado</span>'
+                : u.primeiroAcessoFeito ? '<span class="etiqueta ATIVA">Ativo</span>'
+                : '<span class="etiqueta EM_TESTE">Aguardando 1º acesso</span>';
+            const voce = u.id === eu.id;
+            return `<tr>
+                <td>${esc(u.nome)}${voce ? ' <small>(você)</small>' : ''}</td><td>${esc(u.email)}</td>
+                <td>${esc(u.empresa ?? '-')}</td><td>${esc(NOME_PERFIL[u.perfil])}</td><td>${situacao}</td>
+                <td>${dataHora(u.ultimoLogin)}</td>
+                <td>
+                    <button class="pequeno secundario" data-acao="editar-usuario" data-id="${u.id}">Editar</button>
+                    ${u.email && u.primeiroAcessoFeito ? `<button class="pequeno secundario" data-acao="redefinir" data-id="${u.id}">Enviar redefinição de senha</button>` : ''}
+                    ${capacidades.alteracaoDireta && u.primeiroAcessoFeito ? `<button class="pequeno secundario" data-acao="definir-senha" data-id="${u.id}">Definir senha</button>` : ''}
+                    ${voce ? '' : `<button class="pequeno secundario" data-acao="ativar" data-id="${u.id}">${u.ativo ? 'Desativar' : 'Ativar'}</button>
+                    <button class="pequeno perigo" data-acao="excluir-usuario" data-id="${u.id}">Excluir</button>`}
+                </td></tr>`;
+        }).join('') || '<tr><td colspan="7" class="texto-cinza">Nenhum usuário.</td></tr>';
+    }
+
+    async function carregarPagamentos() {
+        const lista = await api('/api/gm/pagamentos' + filtro('filtro-pagamentos'));
+        $('tabela-pagamentos').innerHTML = lista.map(p => `<tr>
+            <td>${dataHora(p.dataPagamento)}</td><td>${esc(p.empresa)}</td><td>${dinheiro(p.valor)}</td>
+            <td>${esc(p.diasAdicionados)}</td><td>${esc(p.forma)}</td>
+            <td>${data(p.vencimentoAnterior)} → <strong>${data(p.vencimentoNovo)}</strong></td>
+            <td>${esc(p.observacao)}</td><td>${esc(p.registradoPor ?? 'automático')}</td></tr>`).join('')
+            || '<tr><td colspan="8" class="texto-cinza">Nenhum pagamento registrado.</td></tr>';
+    }
+
+    async function carregarLogins() {
+        const lista = await api('/api/gm/logins' + filtro('filtro-logins'));
+        $('tabela-logins').innerHTML = lista.map(l => `<tr>
+            <td>${dataHora(l.dataHora)}</td><td>${esc(l.usuario)}</td><td>${esc(l.email)}</td>
+            <td>${esc(l.empresa)}</td><td>${esc(PROVEDOR[l.provedor] ?? l.provedor)}</td><td>${esc(l.ip)}</td></tr>`).join('')
+            || '<tr><td colspan="6" class="texto-cinza">Nenhum login registrado.</td></tr>';
+    }
+
+    $('busca-empresa').addEventListener('input', mostrarEmpresas);
+    $('filtro-usuarios').addEventListener('change', () => carregarUsuarios().catch(e => avisar(e.message, 'erro')));
+    $('filtro-pagamentos').addEventListener('change', () => carregarPagamentos().catch(e => avisar(e.message, 'erro')));
+    $('filtro-logins').addEventListener('change', () => carregarLogins().catch(e => avisar(e.message, 'erro')));
+
+    // ---------------------------------------------------------------- janelas (dialogs)
+    document.querySelectorAll('dialog .fechar').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+
+    $('form-empresa').addEventListener('submit', e => {
+        e.preventDefault();
+        executar(async () => {
+            await api(`/api/gm/empresas/${empresaEmEdicao.id}`, { metodo: 'PUT', corpo: {
+                razaoSocial: $('emp-razao').value, nomeFantasia: $('emp-fantasia').value, cnpj: $('emp-cnpj').value,
+                telefone: $('emp-telefone').value, nomeResponsavel: $('emp-responsavel').value,
+                cpfResponsavel: $('emp-cpf').value, email: $('emp-email').value } });
+            $('dlg-empresa').close();
+        }, 'Empresa atualizada.');
+    });
+
+    $('form-pagamento').addEventListener('submit', e => {
+        e.preventDefault();
+        executar(async () => {
+            const p = await api(`/api/gm/empresas/${empresaEmEdicao.id}/pagamentos`, { metodo: 'POST', corpo: {
+                valor: parseFloat($('pag-valor').value), dias: parseInt($('pag-dias').value),
+                forma: $('pag-forma').value, observacao: $('pag-obs').value } });
+            $('dlg-pagamento').close();
+            avisar(`Pagamento registrado. Novo vencimento: ${data(p.vencimentoNovo)}`);
+        });
+    });
+
+    // Mensalidade: empresaEmEdicao = null quando é o valor padrão
+    $('btn-mensalidade-padrao').addEventListener('click', () => {
+        empresaEmEdicao = null;
+        $('mens-titulo').textContent = 'Mensalidade padrão';
+        $('mens-info').textContent = 'Novo valor para todas as empresas sem valor próprio (o preço pode subir).';
+        $('mens-usar-padrao-rotulo').classList.add('oculto');
+        $('mens-usar-padrao').checked = false;
+        $('mens-valor').disabled = false;
+        $('mens-valor').value = mensalidadePadrao;
+        $('dlg-mensalidade').showModal();
+    });
+    $('mens-usar-padrao').addEventListener('change', () => {
+        $('mens-valor').disabled = $('mens-usar-padrao').checked;
+        if ($('mens-usar-padrao').checked) $('mens-valor').value = mensalidadePadrao;
+    });
+    $('form-mensalidade').addEventListener('submit', e => {
+        e.preventDefault();
+        const valor = $('mens-usar-padrao').checked ? null : parseFloat($('mens-valor').value);
+        executar(async () => {
+            if (empresaEmEdicao) {
+                await api(`/api/gm/empresas/${empresaEmEdicao.id}/valor-mensal`, { metodo: 'PUT', corpo: { valorMensal: valor } });
+            } else {
+                await api('/api/gm/mensalidade', { metodo: 'PUT', corpo: { valorMensal: valor } });
+            }
+            $('dlg-mensalidade').close();
+        }, 'Mensalidade alterada.');
+    });
+
+    $('form-vencimento').addEventListener('submit', e => {
+        e.preventDefault();
+        executar(async () => {
+            await api(`/api/gm/empresas/${empresaEmEdicao.id}/vencimento`, { metodo: 'PUT', corpo: { dataVencimento: $('venc-data').value } });
+            $('dlg-vencimento').close();
+        }, 'Vencimento alterado.');
+    });
+
+    $('form-usuario').addEventListener('submit', e => {
+        e.preventDefault();
+        executar(async () => {
+            await api(`/api/gm/usuarios/${usuarioEmEdicao.id}`, { metodo: 'PUT', corpo: {
+                nome: $('usu-nome').value, email: $('usu-email').value, telefone: $('usu-telefone').value,
+                perfil: $('usu-perfil').value, ativo: usuarioEmEdicao.ativo } });
+            $('dlg-usuario').close();
+        }, 'Usuário atualizado.');
+    });
+
+    // ---------------------------------------------------------------- botões das tabelas
+    document.addEventListener('click', async e => {
+        const botao = e.target.closest('button[data-acao]');
+        if (!botao) return;
+        const id = Number(botao.dataset.id);
+        const empresa = empresas.find(x => x.id === id);
+        const usuario = usuarios.find(x => x.id === id);
+
+        switch (botao.dataset.acao) {
+            case 'editar-empresa':
+                empresaEmEdicao = empresa;
+                $('emp-razao').value = empresa.razaoSocial;
+                $('emp-fantasia').value = empresa.nomeFantasia;
+                $('emp-cnpj').value = cnpj(empresa.cnpj);
+                $('emp-telefone').value = empresa.telefone ?? '';
+                $('emp-responsavel').value = empresa.nomeResponsavel;
+                $('emp-cpf').value = empresa.cpfResponsavel;
+                $('emp-email').value = empresa.email;
+                return $('dlg-empresa').showModal();
+
+            case 'pagamento':
+                empresaEmEdicao = empresa;
+                $('form-pagamento').reset();
+                $('pag-empresa').textContent = `${empresa.nomeFantasia} · vence em ${data(empresa.dataVencimento)}`;
+                $('pag-valor').value = empresa.valorMensal; // sugere a mensalidade da empresa
+                return $('dlg-pagamento').showModal();
+
+            case 'vencimento':
+                empresaEmEdicao = empresa;
+                $('venc-empresa').textContent = empresa.nomeFantasia;
+                $('venc-data').value = empresa.dataVencimento;
+                return $('dlg-vencimento').showModal();
+
+            case 'mensalidade':
+                empresaEmEdicao = empresa;
+                $('mens-titulo').textContent = 'Mensalidade da empresa';
+                $('mens-info').textContent = `${empresa.nomeFantasia} · padrão do sistema: ${dinheiro(mensalidadePadrao)}`;
+                $('mens-usar-padrao-rotulo').classList.remove('oculto');
+                $('mens-usar-padrao').checked = !empresa.valorMensalProprio;
+                $('mens-valor').disabled = !empresa.valorMensalProprio;
+                $('mens-valor').value = empresa.valorMensal;
+                return $('dlg-mensalidade').showModal();
+
+            case 'status': {
+                const bloquear = empresa.status !== 'BLOQUEADA';
+                if (!confirm(bloquear ? `Bloquear "${empresa.nomeFantasia}"? Ninguém da empresa conseguirá usar o sistema.`
+                                      : `Desbloquear "${empresa.nomeFantasia}"?`)) return;
+                return executar(() => api(`/api/gm/empresas/${id}/status`, { metodo: 'PUT',
+                    corpo: { status: bloquear ? 'BLOQUEADA' : 'ATIVA' } }), bloquear ? 'Empresa bloqueada.' : 'Empresa desbloqueada.');
+            }
+
+            case 'serial':
+                if (!confirm('Gerar um serial novo? O serial atual deixa de valer.')) return;
+                return executar(() => api(`/api/gm/empresas/${id}/novo-serial`, { metodo: 'POST' }), 'Serial novo gerado.');
+
+            case 'ver-usuarios':
+                $('filtro-usuarios').value = String(id);
+                document.querySelector('.abas button[data-aba="usuarios"]').click();
+                return carregarUsuarios();
+
+            case 'excluir-empresa': {
+                // Confirmação reforçada: precisa digitar o nome
+                const digitado = prompt(`ATENÇÃO: isto apaga a empresa e TODOS os dados dela (usuários, senhas, pagamentos).\n` +
+                    `Digite o nome fantasia "${empresa.nomeFantasia}" para confirmar:`);
+                if (digitado === null) return;
+                if (digitado.trim() !== empresa.nomeFantasia) {
+                    avisar('Nome diferente. Nada foi excluído.', 'erro');
+                    return;
+                }
+                return executar(() => api(`/api/gm/empresas/${id}`, { metodo: 'DELETE' }), 'Empresa excluída.');
+            }
+
+            case 'editar-usuario':
+                usuarioEmEdicao = usuario;
+                $('usu-nome').value = usuario.nome;
+                $('usu-email').value = usuario.email ?? '';
+                $('usu-email').readOnly = usuario.primeiroAcessoFeito;
+                $('usu-email-fixo').classList.toggle('oculto', !usuario.primeiroAcessoFeito);
+                $('usu-telefone').value = usuario.telefone ?? '';
+                $('usu-perfil').value = usuario.perfil;
+                // GM continua GM; usuário de empresa escolhe entre administrador e atendente
+                [...$('usu-perfil').options].forEach(o => o.hidden = (usuario.perfil === 'GM') !== (o.value === 'GM'));
+                return $('dlg-usuario').showModal();
+
+            case 'ativar':
+                return executar(() => api(`/api/gm/usuarios/${id}`, { metodo: 'PUT', corpo: {
+                    nome: usuario.nome, email: usuario.email, telefone: usuario.telefone,
+                    perfil: usuario.perfil, ativo: !usuario.ativo } }), usuario.ativo ? 'Usuário desativado.' : 'Usuário ativado.');
+
+            case 'redefinir':
+                if (!confirm(`Enviar para ${usuario.email} o link para criar uma nova senha?`)) return;
+                return executar(() => api(`/api/gm/usuarios/${id}/redefinir-senha`, { metodo: 'POST' }), 'E-mail de redefinição enviado.');
+
+            case 'definir-senha': {
+                const senha = prompt(`Nova senha para ${usuario.nome} (mínimo 6 caracteres):`);
+                if (!senha) return;
+                return executar(() => api(`/api/gm/usuarios/${id}/senha`, { metodo: 'PUT', corpo: { novaSenha: senha } }), 'Senha alterada.');
+            }
+
+            case 'excluir-usuario':
+                if (!confirm(`Excluir ${usuario.nome}? Esta ação não pode ser desfeita.`)) return;
+                return executar(() => api(`/api/gm/usuarios/${id}`, { metodo: 'DELETE' }), 'Usuário excluído.');
+        }
+    });
+
+    try {
+        await carregarTudo();
+    } catch (erro) {
+        avisar(erro.message, 'erro');
+    }
+</script>
+</body>
+</html>

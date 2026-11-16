@@ -2,482 +2,419 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Painel Administrativo - Sistema de Senhas</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f8f9fa; padding: 0; margin: 0; }
-        nav { background-color: #343a40; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
-        .container { max-width: 1000px; margin: 20px auto; padding: 0 20px; }
-        .section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px; }
-        h2 { border-bottom: 2px solid #007bff; padding-bottom: 10px; color: #333; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #007bff; color: white; }
-        input, select, button { padding: 10px; margin: 5px 5px; border-radius: 4px; border: 1px solid #ccc; }
-        button { cursor: pointer; border: none; font-weight: bold; transition: 0.3s; }
-        .btn-add { background-color: #28a745; color: white; }
-        .btn-del { background-color: #dc3545; color: white; }
-        .btn-logout { background-color: #bd2130; color: white; padding: 8px 15px; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão - Sistema de Senhas</title>
+    <link rel="stylesheet" href="/css/estilo.css">
 </head>
 <body>
-
-<nav>
-    <h1>Gestão Administrativa</h1>
-    <div>
-        <span>Bem-vindo, <strong id="nomeAdmin"></strong></span>
-        <button class="btn-logout" onclick="logout()">Sair</button>
+<header class="topo">
+    <h1 id="nome-empresa">Gestão</h1>
+    <div class="usuario">
+        <span>Olá, <strong id="nome-usuario"></strong></span>
+        <a href="/selecionar-guiche.html" class="botao pequeno secundario">Atender</a>
+        <button type="button" id="btn-sair" class="pequeno perigo">Sair</button>
     </div>
-</nav>
+</header>
 
-<div class="container">
+<main class="conteudo">
+
+    <!-- LICENÇA -->
+    <section class="cartao" id="cartao-licenca">
+        <h2>Licença</h2>
+        <div id="aviso-licenca" class="alerta oculto"></div>
+        <div class="linha" style="align-items:flex-start;">
+            <div><span class="texto-cinza">Situação</span><br><span id="lic-situacao" class="etiqueta"></span></div>
+            <div><span class="texto-cinza">Vencimento</span><br><strong id="lic-vencimento"></strong></div>
+            <div><span class="texto-cinza">Dias restantes</span><br><strong id="lic-dias"></strong></div>
+            <div><span class="texto-cinza">CNPJ</span><br><strong id="lic-cnpj"></strong></div>
+            <div><span class="texto-cinza">Serial</span><br><code class="copiar" id="lic-serial" data-copiar></code></div>
+            <div><span class="texto-cinza">Mensalidade</span><br><strong id="lic-mensalidade"></strong></div>
+        </div>
+    </section>
+
+    <div id="area-gestao">
+    <!-- ATENDIMENTO DE HOJE -->
+    <section class="cartao">
+        <h2>Atendimento de hoje</h2>
+        <div class="numeros" id="numeros-hoje"></div>
+        <div class="tabela-rolagem">
+            <table>
+                <thead><tr><th>Guichê</th><th>Serviço</th><th>Situação</th><th>Atendente</th>
+                    <th>Atendimentos</th><th>Tempo médio</th><th>Último</th></tr></thead>
+                <tbody id="tabela-hoje"></tbody>
+            </table>
+        </div>
+        <p class="texto-cinza">Ligado = a tela de atendimento do guichê está aberta. Atualiza sozinho a cada 30 segundos.
+            O tempo médio conta do momento em que a senha é chamada até ser finalizada.</p>
+    </section>
+
+    <!-- LINKS DO TOTEM E DO PAINEL -->
+    <section class="cartao">
+        <h2>Links da sua empresa</h2>
+        <p>Abra estes endereços nos computadores do atendimento:</p>
+        <p>Totem (retirar senha): <a id="link-totem" target="_blank" data-copiar></a></p>
+        <p>Painel da TV: <a id="link-painel" target="_blank" data-copiar></a></p>
+    </section>
 
     <!-- SERVIÇOS -->
-    <div class="section">
+    <section class="cartao">
         <h2>Serviços</h2>
-        <input id="serv-nome" placeholder="Nome">
-        <input id="serv-sigla" placeholder="Sigla">
-        <input id="serv-desc" placeholder="Descrição">
-        <button onclick="salvarServico()">Adicionar</button>
-
-        <table id="tabela-servicos">
-            <thead>
-            <tr><th>ID</th><th>Nome</th><th>Sigla</th><th>Ações</th></tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
+        <form id="form-servico" class="linha">
+            <div><label>Nome</label><input id="serv-nome" placeholder="Ex.: Caixa" required></div>
+            <div><label>Sigla</label><input id="serv-sigla" placeholder="Ex.: CX" maxlength="10" required></div>
+            <div><label>Descrição</label><input id="serv-desc"></div>
+            <div style="flex:0 0 auto;"><button type="submit" class="sucesso">Adicionar</button></div>
+        </form>
+        <div class="tabela-rolagem">
+            <table>
+                <thead><tr><th>Nome</th><th>Sigla</th><th>Descrição</th><th>Ações</th></tr></thead>
+                <tbody id="tabela-servicos"></tbody>
+            </table>
+        </div>
+    </section>
 
     <!-- PRIORIDADES -->
-    <div class="section">
+    <section class="cartao">
         <h2>Prioridades</h2>
-        <input id="prio-nome" placeholder="Nome">
-        <input id="prio-peso" type="number" placeholder="Peso">
-        <button onclick="salvarPrioridade()">Adicionar</button>
-
-        <table id="tabela-prioridades">
-            <thead>
-            <tr><th>ID</th><th>Nome</th><th>Peso</th><th>Ações</th></tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
+        <p class="texto-cinza">Peso maior é chamado antes. Ex.: Normal = 1, Preferencial = 2.</p>
+        <form id="form-prioridade" class="linha">
+            <div><label>Nome</label><input id="prio-nome" placeholder="Ex.: Preferencial" required></div>
+            <div><label>Peso</label><input id="prio-peso" type="number" required></div>
+            <div style="flex:0 0 auto;"><button type="submit" class="sucesso">Adicionar</button></div>
+        </form>
+        <div class="tabela-rolagem">
+            <table>
+                <thead><tr><th>Nome</th><th>Peso</th><th>Ações</th></tr></thead>
+                <tbody id="tabela-prioridades"></tbody>
+            </table>
+        </div>
+    </section>
 
     <!-- GUICHÊS -->
-    <div class="section">
+    <section class="cartao">
         <h2>Guichês</h2>
-
-        <input id="gui-nome" placeholder="Nome (ex: Caixa 01)"> <input id="gui-numero" type="number" placeholder="Número">
-        <input id="gui-setor" placeholder="Setor">
-        <select id="gui-servico"></select>
-        <button onclick="salvarGuiche()">Adicionar</button>
-
-        <table id="tabela-guiches">
-            <thead>
-            <tr>
-                <th>Nome</th> <th>Número</th>
-                <th>Setor</th>
-                <th>Serviço</th>
-                <th>Ações</th>
-            </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-
-    <!-- ATENDENTES -->
-    <div class="section">
-        <h2>Gestão de Atendentes</h2>
-        <div id="form-atendente">
-            <input type="text" id="new-nome" placeholder="Nome Completo" required>
-            <input type="text" id="new-username" placeholder="Usuário" required>
-            <input type="password" id="new-password" placeholder="Senha" required>
-            <select id="new-admin">
-                <option value="false">Atendente Comum</option>
-                <option value="true">Administrador</option>
-            </select>
-            <button class="btn-add" onclick="cadastrarAtendente()">Cadastrar Funcionário</button>
+        <form id="form-guiche" class="linha">
+            <div><label>Nome (aparece no painel)</label><input id="gui-nome" placeholder="Ex.: Caixa 01" required></div>
+            <div><label>Número</label><input id="gui-numero" type="number"></div>
+            <div><label>Setor</label><input id="gui-setor"></div>
+            <div><label>Serviço</label><select id="gui-servico" required></select></div>
+            <div style="flex:0 0 auto;"><button type="submit" class="sucesso">Adicionar</button></div>
+        </form>
+        <div class="tabela-rolagem">
+            <table>
+                <thead><tr><th>Nome</th><th>Número</th><th>Setor</th><th>Serviço</th><th>Ações</th></tr></thead>
+                <tbody id="tabela-guiches"></tbody>
+            </table>
         </div>
-        <table id="tabela-atendentes">
-            <thead>
-            <tr><th>ID</th><th>Nome</th><th>Usuário</th><th>Cargo</th><th>Ações</th></tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+    </section>
+
+    <!-- EQUIPE -->
+    <section class="cartao">
+        <h2>Equipe</h2>
+        <p class="texto-cinza">
+            Cadastre o e-mail da pessoa. Ela entra na tela de login em <strong>"Primeiro acesso"</strong>
+            (cria a senha) ou com <strong>"Entrar com o Google"</strong> usando esse e-mail.
+        </p>
+        <form id="form-equipe" class="linha">
+            <div><label>Nome</label><input id="eq-nome" required></div>
+            <div><label>E-mail</label><input id="eq-email" type="email" required></div>
+            <div><label>Celular (opcional, para SMS)</label><input id="eq-telefone" type="tel" placeholder="83999990000"></div>
+            <div>
+                <label>Perfil</label>
+                <select id="eq-perfil">
+                    <option value="ATENDENTE">Atendente</option>
+                    <option value="ADMIN_EMPRESA">Administrador</option>
+                </select>
+            </div>
+            <div style="flex:0 0 auto;"><button type="submit" class="sucesso">Cadastrar</button></div>
+        </form>
+        <div class="tabela-rolagem">
+            <table>
+                <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Situação</th><th>Último acesso</th><th>Ações</th></tr></thead>
+                <tbody id="tabela-equipe"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- RESET -->
+    <section class="cartao" style="border: 2px solid var(--vermelho);">
+        <h2 style="color: var(--vermelho); border-color: var(--vermelho);">Fim do dia</h2>
+        <p>Apaga todas as senhas e atendimentos da sua empresa. A numeração volta para 001.</p>
+        <button type="button" id="btn-resetar" class="perigo botao-largo">Resetar fila</button>
+    </section>
     </div>
-    <div class="section" style="border: 2px solid #dc3545;">
-        <h2 style="color: #dc3545;">Operações de Sistema</h2>
-        <p>Atenção: Esta ação apagará todas as senhas e atendimentos do dia.</p>
-        <button class="btn-del" onclick="resetarSistema()" style="padding: 15px; width: 100%;">
-            RESETAR FILA (FIM DO DIA)
-        </button>
-    </div>
+</main>
 
-</div>
+<script type="module">
+    import { exigirLogin, api, sair, esc, avisar, dataHora, data, NOME_PERFIL, NOME_SITUACAO, ativarBotoesCopiar, duracao }
+        from '/js/app.js';
 
-<script>
+    const $ = id => document.getElementById(id);
+    const eu = await exigirLogin(['ADMIN_EMPRESA']);
 
-    const user = JSON.parse(localStorage.getItem('atendente'));
+    // Guardamos as listas para usar nos botões de editar
+    let servicos = [], prioridades = [], guiches = [], equipe = [];
 
-    window.onload = () => {
-        if (!user || !user.admin) {
-            alert("Acesso negado!");
-            window.location.href = "/login.html";
-            return;
+    // ---------------------------------------------------------------- cabeçalho e links
+    $('nome-empresa').textContent = eu.empresa.nomeFantasia;
+    $('nome-usuario').textContent = eu.nome;
+    const linkTotem = `${location.origin}/index.html?empresa=${eu.empresa.slug}`;
+    const linkPainel = `${location.origin}/painel.html?empresa=${eu.empresa.slug}`;
+    $('link-totem').textContent = $('link-totem').href = linkTotem;
+    $('link-painel').textContent = $('link-painel').href = linkPainel;
+    $('btn-sair').addEventListener('click', sair);
+    ativarBotoesCopiar();
+
+    /** Executa uma ação e mostra o erro do servidor, se houver. */
+    async function executar(acao, mensagemOk) {
+        try {
+            await acao();
+            if (mensagemOk) avisar(mensagemOk);
+        } catch (erro) {
+            avisar(erro.message, 'erro');
         }
-        document.getElementById('nomeAdmin').innerText = user.nome;
-        carregarTudo();
-    };
-
-    function logout() {
-        localStorage.removeItem('atendente');
-        window.location.href = "/login.html";
     }
 
+    /**
+     * Exclui um registro. Se o servidor responder 409 (CONFIRMAR_EXCLUSAO), pergunta ao usuário
+     * e repete com ?confirmado=true.
+     */
+    async function excluir(url, pergunta) {
+        if (!confirm(pergunta)) return;
+        try {
+            await api(url, { metodo: 'DELETE' });
+        } catch (erro) {
+            if (erro.codigo !== 'CONFIRMAR_EXCLUSAO' || !confirm(erro.message)) {
+                if (erro.codigo !== 'CONFIRMAR_EXCLUSAO') avisar(erro.message, 'erro');
+                return;
+            }
+            await api(url + '?confirmado=true', { metodo: 'DELETE' });
+        }
+        avisar('Excluído.');
+        await carregarTudo();
+    }
+
+    // ---------------------------------------------------------------- carregar listas
     async function carregarTudo() {
-        carregarTabela('/servicos', 'tabela-servicos');
-        carregarTabela('/prioridades', 'tabela-prioridades');
-        carregarGuiches();
-        popularSelectServicos();
-        carregarAtendentes();
+        [servicos, prioridades, guiches, equipe] = await Promise.all([
+            api('/api/empresa/servicos'), api('/api/empresa/prioridades'),
+            api('/api/empresa/guiches'), api('/api/empresa/equipe')
+        ]);
+
+        $('tabela-servicos').innerHTML = servicos.map(s => `
+            <tr><td>${esc(s.nome)}</td><td>${esc(s.sigla)}</td><td>${esc(s.descricao)}</td>
+            <td><button class="pequeno secundario" data-acao="editar-servico" data-id="${s.id}">Editar</button>
+                <button class="pequeno perigo" data-acao="excluir-servico" data-id="${s.id}">Remover</button></td></tr>`).join('')
+            || '<tr><td colspan="4" class="texto-cinza">Nenhum serviço cadastrado.</td></tr>';
+
+        $('tabela-prioridades').innerHTML = prioridades.map(p => `
+            <tr><td>${esc(p.nome)}</td><td>${esc(p.peso)}</td>
+            <td><button class="pequeno secundario" data-acao="editar-prioridade" data-id="${p.id}">Editar</button>
+                <button class="pequeno perigo" data-acao="excluir-prioridade" data-id="${p.id}">Remover</button></td></tr>`).join('')
+            || '<tr><td colspan="3" class="texto-cinza">Nenhuma prioridade cadastrada.</td></tr>';
+
+        $('gui-servico').innerHTML = '<option value="">Selecione</option>' +
+            servicos.map(s => `<option value="${s.id}">${esc(s.nome)}</option>`).join('');
+
+        $('tabela-guiches').innerHTML = guiches.map(g => `
+            <tr><td>${esc(g.nome)}</td><td>${esc(g.numero)}</td><td>${esc(g.setor)}</td><td>${esc(g.servico?.nome)}</td>
+            <td><button class="pequeno secundario" data-acao="editar-guiche" data-id="${g.id}">Editar</button>
+                <button class="pequeno perigo" data-acao="excluir-guiche" data-id="${g.id}">Remover</button></td></tr>`).join('')
+            || '<tr><td colspan="5" class="texto-cinza">Nenhum guichê cadastrado.</td></tr>';
+
+        $('tabela-equipe').innerHTML = equipe.map(u => {
+            const situacao = !u.ativo ? '<span class="etiqueta INATIVO">Desativado</span>'
+                : u.primeiroAcessoFeito ? '<span class="etiqueta ATIVA">Ativo</span>'
+                : '<span class="etiqueta EM_TESTE">Aguardando 1º acesso</span>';
+            const voceMesmo = u.id === eu.id;
+            return `<tr><td>${esc(u.nome)}${voceMesmo ? ' <span class="texto-cinza">(você)</span>' : ''}</td>
+                <td>${esc(u.email)}</td><td>${esc(NOME_PERFIL[u.perfil])}</td><td>${situacao}</td>
+                <td>${dataHora(u.ultimoLogin)}</td>
+                <td><button class="pequeno secundario" data-acao="editar-membro" data-id="${u.id}">Editar</button>
+                ${voceMesmo ? '' : `
+                    <button class="pequeno secundario" data-acao="ativar-membro" data-id="${u.id}">${u.ativo ? 'Desativar' : 'Ativar'}</button>
+                    <button class="pequeno perigo" data-acao="excluir-membro" data-id="${u.id}">Remover</button>`}
+                </td></tr>`;
+        }).join('');
+
+        await carregarAtendimentoDeHoje(); // guichês podem ter mudado
     }
 
-    /* =======================
-       SERVIÇOS EDITAR
-    ======================= */
+    // ---------------------------------------------------------------- adicionar
+    $('form-servico').addEventListener('submit', e => { e.preventDefault(); executar(async () => {
+        await api('/api/empresa/servicos', { metodo: 'POST', corpo: {
+            nome: $('serv-nome').value, sigla: $('serv-sigla').value, descricao: $('serv-desc').value } });
+        e.target.reset();
+        await carregarTudo();
+    }, 'Serviço adicionado.'); });
 
-    async function editarServico(id, nome, sigla, descricao){
+    $('form-prioridade').addEventListener('submit', e => { e.preventDefault(); executar(async () => {
+        await api('/api/empresa/prioridades', { metodo: 'POST', corpo: {
+            nome: $('prio-nome').value, peso: parseInt($('prio-peso').value) } });
+        e.target.reset();
+        await carregarTudo();
+    }, 'Prioridade adicionada.'); });
 
-        const novoNome = prompt("Novo nome:", nome);
-        if(novoNome === null) return;
+    $('form-guiche').addEventListener('submit', e => { e.preventDefault(); executar(async () => {
+        await api('/api/empresa/guiches', { metodo: 'POST', corpo: {
+            nome: $('gui-nome').value, numero: parseInt($('gui-numero').value) || null,
+            setor: $('gui-setor').value, servicoId: parseInt($('gui-servico').value) } });
+        e.target.reset();
+        await carregarTudo();
+    }, 'Guichê adicionado.'); });
 
-        const novaSigla = prompt("Nova sigla:", sigla);
-        if(novaSigla === null) return;
+    $('form-equipe').addEventListener('submit', e => { e.preventDefault(); executar(async () => {
+        await api('/api/empresa/equipe', { metodo: 'POST', corpo: {
+            nome: $('eq-nome').value, email: $('eq-email').value,
+            telefone: $('eq-telefone').value, perfil: $('eq-perfil').value } });
+        e.target.reset();
+        await carregarTudo();
+    }, 'Pessoa cadastrada. Avise para fazer o "Primeiro acesso" na tela de login.'); });
 
-        const novaDesc = prompt("Nova descrição:", descricao);
-        if(novaDesc === null) return;
+    // ---------------------------------------------------------------- botões das tabelas
+    // Um único "ouvinte" para todos os botões: o data-acao diz o que fazer e o data-id qual registro
+    document.addEventListener('click', async e => {
+        const botao = e.target.closest('button[data-acao]');
+        if (!botao) return;
+        const id = Number(botao.dataset.id);
 
-        await fetch(`/servicos/${id}`, {
-            method:'PUT',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({
-                nome: novoNome,
-                sigla: novaSigla,
-                descricao: novaDesc
-            })
-        });
-
-        carregarTudo();
-    }
-
-    /* =======================
-       PRIORIDADES EDITAR
-    ======================= */
-
-    async function editarPrioridade(id, nome, peso){
-
-        const novoNome = prompt("Novo nome:", nome);
-        if(novoNome === null) return;
-
-        const novoPeso = prompt("Novo peso:", peso);
-        if(novoPeso === null) return;
-
-        await fetch(`/prioridades/${id}`, {
-            method:'PUT',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({
-                nome: novoNome,
-                peso: parseInt(novoPeso)
-            })
-        });
-
-        carregarTudo();
-    }
-
-    /* =======================
-       TABELAS
-    ======================= */
-
-    async function carregarTabela(url, tabelaId) {
-        const response = await fetch(url);
-        if (!response.ok) return;
-
-        const dados = await response.json();
-        const tbody = document.querySelector(`#${tabelaId} tbody`);
-        tbody.innerHTML = "";
-
-        dados.forEach(item => {
-
-            let botaoEditar = "";
-
-            if(url === "/servicos"){
-                botaoEditar = `<button onclick="editarServico(${item.id}, '${item.nome}', '${item.sigla}', '${item.descricao}')">Editar</button>`;
+        switch (botao.dataset.acao) {
+            case 'editar-servico': {
+                const s = servicos.find(x => x.id === id);
+                const nome = prompt('Nome:', s.nome); if (nome === null) return;
+                const sigla = prompt('Sigla:', s.sigla); if (sigla === null) return;
+                const descricao = prompt('Descrição:', s.descricao ?? ''); if (descricao === null) return;
+                return executar(async () => {
+                    await api(`/api/empresa/servicos/${id}`, { metodo: 'PUT', corpo: { nome, sigla, descricao } });
+                    await carregarTudo();
+                }, 'Serviço atualizado.');
             }
+            case 'excluir-servico':
+                return excluir(`/api/empresa/servicos/${id}`, 'Remover este serviço?');
 
-            if(url === "/prioridades"){
-                botaoEditar = `<button onclick="editarPrioridade(${item.id}, '${item.nome}', '${item.peso}')">Editar</button>`;
+            case 'editar-prioridade': {
+                const p = prioridades.find(x => x.id === id);
+                const nome = prompt('Nome:', p.nome); if (nome === null) return;
+                const peso = prompt('Peso:', p.peso); if (peso === null) return;
+                return executar(async () => {
+                    await api(`/api/empresa/prioridades/${id}`, { metodo: 'PUT', corpo: { nome, peso: parseInt(peso) } });
+                    await carregarTudo();
+                }, 'Prioridade atualizada.');
             }
+            case 'excluir-prioridade':
+                return excluir(`/api/empresa/prioridades/${id}`, 'Remover esta prioridade?');
 
-            tbody.innerHTML += `
-        <tr>
-            <td>${item.id}</td>
-            <td>${item.nome}</td>
-            <td>${item.sigla || item.peso}</td>
-            <td>
-                ${botaoEditar}
-                <button class="btn-del" onclick="deletar('${url}', ${item.id})">Remover</button>
-            </td>
-        </tr>`;
-        });
-    }
-
-    /* =======================
-       SALVAR
-    ======================= */
-
-    async function salvarServico() {
-        await fetch('/servicos', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({
-                nome: document.getElementById('serv-nome').value,
-                sigla: document.getElementById('serv-sigla').value,
-                descricao: document.getElementById('serv-desc').value
-            })
-        });
-        carregarTudo();
-    }
-
-    async function salvarPrioridade() {
-        await fetch('/prioridades', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({
-                nome: document.getElementById('prio-nome').value,
-                peso: parseInt(document.getElementById('prio-peso').value)
-            })
-        });
-        carregarTudo();
-    }
-
-    /* =======================
-       GUICHÊS (SEM NOME)
-    ======================= */
-
-    async function popularSelectServicos() {
-        const resp = await fetch('/servicos');
-        const servicos = await resp.json();
-        const select = document.getElementById('gui-servico');
-        select.innerHTML = '<option value="">Selecione</option>';
-        servicos.forEach(s => {
-            select.innerHTML += `<option value="${s.id}">${s.nome}</option>`;
-        });
-    }
-
-    async function carregarGuiches() {
-        const resp = await fetch('/guiche');
-        const dados = await resp.json();
-        const tbody = document.querySelector('#tabela-guiches tbody');
-        tbody.innerHTML = "";
-
-        dados.forEach(g => {
-            tbody.innerHTML += `
-        <tr>
-            <td>${g.nome || 'N/A'}</td> <td>${g.numero}</td>
-            <td>${g.setor}</td>
-            <td>${g.servico.nome}</td>
-            <td>
-                <button onclick="editarGuiche(${g.id}, '${g.nome}', '${g.numero}', '${g.setor}', ${g.servico.id})">Editar</button>
-                <button class="btn-del" onclick="deletar('/guiche', ${g.id})">Remover</button>
-            </td>
-        </tr>`;
-        });
-    }
-
-    async function salvarGuiche() {
-        await fetch('/guiche', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({
-                nome: document.getElementById('gui-nome').value, // Envia o nome
-                numero: parseInt(document.getElementById('gui-numero').value),
-                setor: document.getElementById('gui-setor').value,
-                servico: { id: parseInt(document.getElementById('gui-servico').value) },
-                ocupado: false
-            })
-        });
-
-        // Limpa o campo nome após salvar
-        document.getElementById('gui-nome').value = "";
-        carregarTudo();
-    }
-
-    async function editarGuiche(id, nome, numero, setor, servicoId){
-
-        const novoNome = prompt("Novo nome do guichê:", nome); // Prompt para o nome
-        if(novoNome === null) return;
-
-        const novoNumero = prompt("Novo número:", numero);
-        if(novoNumero === null) return;
-
-        const novoSetor = prompt("Novo setor:", setor);
-        if(novoSetor === null) return;
-
-        await fetch(`/guiche/${id}`, {
-            method:'PUT',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({
-                nome: novoNome,
-                numero: parseInt(novoNumero),
-                setor: novoSetor,
-                servico: { id: servicoId }
-            })
-        });
-
-        carregarTudo();
-    }
-
-    /* ======================= */
-
-    async function deletar(url, id, confirmado = false) {
-        const endpoint = confirmado ? `${url}/${id}?confirmado=true` : `${url}/${id}`;
-
-        const response = await fetch(endpoint, { method: 'DELETE' });
-
-        if (response.status === 409) {
-            const msg = await response.text();
-            if (confirm(msg)) {
-                await deletar(url, id, true);
+            case 'editar-guiche': {
+                const g = guiches.find(x => x.id === id);
+                const nome = prompt('Nome:', g.nome); if (nome === null) return;
+                const numero = prompt('Número:', g.numero ?? ''); if (numero === null) return;
+                const setor = prompt('Setor:', g.setor ?? ''); if (setor === null) return;
+                return executar(async () => {
+                    await api(`/api/empresa/guiches/${id}`, { metodo: 'PUT', corpo: {
+                        nome, numero: parseInt(numero) || null, setor, servicoId: g.servico.id } });
+                    await carregarTudo();
+                }, 'Guichê atualizado.');
             }
-        } else {
-            carregarTudo();
-        }
-    }
+            case 'excluir-guiche':
+                return excluir(`/api/empresa/guiches/${id}`, 'Remover este guichê?');
 
-    async function carregarAtendentes() {
-        const response = await fetch('/auth/listar');
-        const atendentes = await response.json();
-        const tbody = document.querySelector('#tabela-atendentes tbody');
-        tbody.innerHTML = "";
-
-        atendentes.forEach(a => {
-            const cargo = a.admin ? "<strong>Admin</strong>" : "Atendente";
-            const botaoAdmin = a.admin ? "" : `<button class="btn-add" onclick="promover(${a.id})">Promover a Admin</button>`;
-
-
-            const botaoEditar = `<button onclick="editarAtendente(${a.id}, '${a.nome}', '${a.username}')">Editar</button>`;
-
-            const row = `<tr>
-                <td>${a.id}</td>
-                <td>${a.nome}</td>
-                <td>${a.username}</td>
-                <td>${cargo}</td>
-                <td>
-                    ${botaoEditar}
-                    ${botaoAdmin}
-                    <button class="btn-del" onclick="eliminarAtendente(${a.id})">Remover</button>
-                </td>
-            </tr>`;
-            tbody.innerHTML += row;
-        });
-    }
-
-    async function editarAtendente(id, nomeAtual, usernameAtual) {
-        const novoNome = prompt("Nome completo:", nomeAtual);
-        if (novoNome === null) return;
-
-        const novoUsername = prompt("Nome de usuário (login):", usernameAtual);
-        if (novoUsername === null) return;
-
-        const novaSenha = prompt("Nova senha (deixe em branco para manter a atual):");
-        if (novaSenha === null) return; // Cancelou a operação
-
-        const payload = {
-            nome: novoNome,
-            username: novoUsername
-        };
-
-        if (novaSenha.trim() !== "") {
-            payload.password = novaSenha;
-        }
-
-        const response = await fetch(`/auth/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-            carregarAtendentes(); // Recarrega a tabela para mostrar as alterações
-        } else {
-            alert("Erro ao atualizar o atendente.");
-        }
-    }
-
-    async function promover(id) {
-        if(confirm("Deseja dar permissões de administrador a este utilizador?")) {
-            await fetch(`/auth/${id}/tornar-admin`, { method: 'PUT' });
-            carregarAtendentes();
-        }
-
-    }
-
-    async function eliminarAtendente(id) {
-        if(confirm("Remover este atendente do sistema?")) {
-            await fetch(`/auth/${id}`, { method: 'DELETE' });
-            carregarAtendentes();
-        }
-
-    }
-    async function cadastrarAtendente() {
-        const payload = {
-            nome: document.getElementById('new-nome').value,
-            username: document.getElementById('new-username').value,
-            password: document.getElementById('new-password').value,
-            admin: document.getElementById('new-admin').value === "true"
-        };
-
-        const response = await fetch('/auth/registrar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-            alert("Novo atendente cadastrado com sucesso!");
-            // Limpa os campos
-            document.getElementById('new-nome').value = "";
-            document.getElementById('new-username').value = "";
-            document.getElementById('new-password').value = "";
-            carregarAtendentes(); // Atualiza a tabela abaixo
-
-        } else {
-            alert("Erro ao cadastrar. O usuário pode já existir.");
-        }
-    }
-
-    async function resetarSistema() {
-        if (confirm("TEM CERTEZA? Isso apagará todo o histórico de hoje e não pode ser desfeito.")) {
-            try {
-                const response = await fetch('/senha/resetar-todas', {
-                    method: 'DELETE'
-                });
-
-                if (response.ok) {
-                    alert("Sistema resetado com sucesso para amanhã!");
-                    // Opcional: Limpar o localStorage de histórico se você quiser que o painel também limpe
-                    // localStorage.removeItem('historicoSenhas');
-                    carregarTudo();
-                } else {
-                    alert("Erro ao tentar resetar o sistema.");
-                }
-            } catch (error) {
-                console.error("Erro:", error);
-                alert("Erro de conexão com o servidor.");
+            case 'editar-membro': {
+                const u = equipe.find(x => x.id === id);
+                const nome = prompt('Nome:', u.nome); if (nome === null) return;
+                const email = u.primeiroAcessoFeito ? u.email : prompt('E-mail:', u.email); if (email === null) return;
+                const telefone = prompt('Celular (opcional):', u.telefone ?? ''); if (telefone === null) return;
+                const admin = u.id === eu.id ? true : confirm('Esta pessoa deve ser ADMINISTRADOR? (OK = sim, Cancelar = atendente)');
+                return executar(async () => {
+                    await api(`/api/empresa/equipe/${id}`, { metodo: 'PUT', corpo: {
+                        nome, email, telefone, perfil: admin ? 'ADMIN_EMPRESA' : 'ATENDENTE', ativo: u.ativo } });
+                    await carregarTudo();
+                }, 'Dados atualizados.');
             }
+            case 'ativar-membro': {
+                const u = equipe.find(x => x.id === id);
+                return executar(async () => {
+                    await api(`/api/empresa/equipe/${id}`, { metodo: 'PUT', corpo: {
+                        nome: u.nome, email: u.email, telefone: u.telefone, perfil: u.perfil, ativo: !u.ativo } });
+                    await carregarTudo();
+                }, u.ativo ? 'Acesso desativado.' : 'Acesso ativado.');
+            }
+            case 'excluir-membro':
+                return excluir(`/api/empresa/equipe/${id}`, 'Remover esta pessoa da equipe?');
         }
+    });
+
+    $('btn-resetar').addEventListener('click', () => {
+        if (!confirm('TEM CERTEZA? Isso apaga todas as senhas e atendimentos de hoje.')) return;
+        executar(async () => {
+            await api('/api/empresa/senhas', { metodo: 'DELETE' });
+            localStorage.removeItem('historicoSenhas-' + eu.empresa.slug);
+            localStorage.removeItem('ultimaSenha-' + eu.empresa.slug);
+        }, 'Fila zerada.');
+    });
+
+    // ---------------------------------------------------------------- licença
+    /**
+     * Mostra o cartão da licença. Se estiver vencida ou bloqueada, esconde o resto da gestão
+     * (o servidor recusaria as chamadas de qualquer forma, com status 402).
+     * @returns true se a empresa pode usar o sistema
+     */
+    function mostrarLicenca(licenca) {
+        $('lic-situacao').textContent = NOME_SITUACAO[licenca.situacao];
+        $('lic-situacao').className = 'etiqueta ' + licenca.situacao;
+        $('lic-vencimento').textContent = data(licenca.dataVencimento);
+        $('lic-dias').textContent = licenca.diasRestantes < 0 ? 'vencida' : licenca.diasRestantes;
+        $('lic-cnpj').textContent = licenca.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+        $('lic-serial').textContent = licenca.serial;
+        const valor = Number(licenca.valorMensal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        $('lic-mensalidade').textContent = licenca.emPeriodoGratis ? `${valor}/mês após o período grátis` : `${valor}/mês`;
+
+        const aviso = $('aviso-licenca');
+        if (!licenca.liberada) {
+            aviso.className = 'alerta erro';
+            aviso.textContent = licenca.situacao === 'BLOQUEADA'
+                ? 'O acesso desta empresa foi bloqueado. Entre em contato com o suporte.'
+                : 'A licença venceu. O totem, o painel e o atendimento estão parados até a renovação.';
+            $('area-gestao').classList.add('oculto');
+        } else if (licenca.diasRestantes <= 7) {
+            aviso.className = 'alerta info';
+            aviso.textContent = licenca.diasRestantes === 0
+                ? 'A licença vence HOJE.'
+                : `A licença vence em ${licenca.diasRestantes} dia(s).`;
+        }
+        return licenca.liberada;
     }
 
+    // ---------------------------------------------------------------- atendimento de hoje
+    const hora = iso => iso ? new Date(iso).toLocaleTimeString('pt-BR', { timeStyle: 'short' }) : '-';
+
+    async function carregarAtendimentoDeHoje() {
+        const r = await api('/api/empresa/relatorios/atendimento-hoje');
+        const numeros = [
+            [`${r.guichesLigados} de ${r.totalGuiches}`, 'Guichês ligados'],
+            [r.guichesQueAtenderam, 'Guichês que atenderam'],
+            [r.totalAtendimentos, 'Atendimentos no dia'],
+            [r.emAndamento, 'Em atendimento agora'],
+            [duracao(r.tempoMedioSegundos), 'Tempo médio de atendimento']
+        ];
+        $('numeros-hoje').innerHTML = numeros.map(([valor, rotulo]) =>
+            `<div class="numero"><strong>${esc(valor)}</strong><span>${esc(rotulo)}</span></div>`).join('');
+        $('tabela-hoje').innerHTML = r.guiches.map(g => {
+            const situacao = !g.ligado ? '<span class="etiqueta DESLIGADO">Desligado</span>'
+                : g.atendendo ? '<span class="etiqueta EM_TESTE">Atendendo</span>'
+                : '<span class="etiqueta ATIVA">Ligado</span>';
+            return `<tr>
+                <td>${esc(g.nome)}${g.numero ? ` <small class="texto-cinza">nº ${esc(g.numero)}</small>` : ''}</td>
+                <td>${esc(g.servico)}</td><td>${situacao}</td><td>${esc(g.atendente ?? '-')}</td>
+                <td><strong>${esc(g.atendimentos)}</strong></td><td>${duracao(g.tempoMedioSegundos)}</td>
+                <td>${hora(g.ultimoAtendimento)}</td></tr>`;
+        }).join('') || '<tr><td colspan="7" class="texto-cinza">Nenhum guichê cadastrado.</td></tr>';
+    }
+
+    if (mostrarLicenca(eu.licenca)) {
+        await executar(carregarTudo);
+        // Atualiza sozinho; erros aqui não incomodam com avisos a cada 30 s
+        setInterval(() => carregarAtendimentoDeHoje().catch(() => {}), 30000);
+    }
 </script>
-
 </body>
 </html>
