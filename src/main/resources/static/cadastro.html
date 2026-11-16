@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastrar empresa - Sistema de Senhas</title>
+    <link rel="stylesheet" href="/css/estilo.css">
+</head>
+<body>
+<div class="centralizado">
+    <div class="cartao" style="width:100%; max-width:560px;">
+        <h2 id="titulo">Cadastrar minha empresa</h2>
+        <div id="mensagem" class="alerta oculto"></div>
+
+        <!-- ============ PASSO 1: CRIAR A CONTA DE ACESSO ============ -->
+        <div id="passo-conta" class="oculto">
+            <p class="texto-cinza">Passo 1 de 2: crie seu acesso. Ele será o administrador da empresa.</p>
+            <button type="button" id="btn-google" class="google botao-largo">Continuar com o Google</button>
+            <div class="separador">ou com e-mail e senha</div>
+            <form id="form-conta">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" autocomplete="email" required>
+                <label for="senha">Senha (mínimo 6 caracteres)</label>
+                <input type="password" id="senha" autocomplete="new-password" minlength="6" required>
+                <button type="submit" class="botao-largo">Criar acesso</button>
+            </form>
+            <p class="texto-cinza" style="text-align:center;">Já tem acesso? <a href="/login.html">Entrar</a></p>
+        </div>
+
+        <!-- ============ CONFIRMAR E-MAIL ============ -->
+        <div id="passo-confirmar" class="oculto">
+            <p>Enviamos um link de confirmação para <strong id="email-confirmar"></strong>.</p>
+            <p class="texto-cinza">Abra o e-mail (veja também o spam), clique no link e depois clique abaixo.</p>
+            <button type="button" id="btn-ja-confirmei" class="botao-largo">Já confirmei meu e-mail</button>
+            <button type="button" id="btn-reenviar" class="secundario botao-largo">Reenviar e-mail</button>
+        </div>
+
+        <!-- ============ VALIDAR CELULAR POR SMS (só se estiver ativado) ============ -->
+        <div id="passo-sms" class="oculto">
+            <p class="texto-cinza">Valide seu celular. Enviaremos um código por SMS.</p>
+            <form id="form-sms-enviar">
+                <label for="telefone-sms">Celular com DDD</label>
+                <input type="tel" id="telefone-sms" placeholder="83999990000" required>
+                <button type="submit" id="btn-enviar-sms" class="botao-largo">Enviar código</button>
+            </form>
+            <form id="form-sms-codigo" class="oculto">
+                <label for="codigo-sms">Código recebido</label>
+                <input type="text" id="codigo-sms" inputmode="numeric" maxlength="6" required>
+                <button type="submit" class="botao-largo">Confirmar</button>
+            </form>
+            <div id="recaptcha"></div>
+        </div>
+
+        <!-- ============ PASSO 2: DADOS DA EMPRESA ============ -->
+        <form id="passo-empresa" class="oculto">
+            <p class="texto-cinza">Passo 2 de 2: dados da empresa. Acesso: <strong id="email-logado"></strong></p>
+            <label for="razaoSocial">Razão social</label>
+            <input id="razaoSocial" required maxlength="150">
+            <label for="nomeFantasia">Nome fantasia (aparece no totem e no painel)</label>
+            <input id="nomeFantasia" required maxlength="150">
+            <div class="linha">
+                <div>
+                    <label for="cnpj">CNPJ</label>
+                    <input id="cnpj" required placeholder="00.000.000/0000-00" inputmode="numeric">
+                </div>
+                <div>
+                    <label for="telefone">Telefone</label>
+                    <input id="telefone" type="tel" placeholder="(83) 99999-0000">
+                </div>
+            </div>
+            <div class="linha">
+                <div>
+                    <label for="nomeResponsavel">Nome do responsável</label>
+                    <input id="nomeResponsavel" required maxlength="150">
+                </div>
+                <div>
+                    <label for="cpfResponsavel">CPF do responsável</label>
+                    <input id="cpfResponsavel" required placeholder="000.000.000-00" inputmode="numeric">
+                </div>
+            </div>
+            <button type="submit" id="btn-cadastrar" class="sucesso botao-largo">Cadastrar empresa</button>
+            <button type="button" id="btn-outra-conta" class="secundario botao-largo">Usar outra conta</button>
+        </form>
+
+        <!-- ============ PRONTO ============ -->
+        <div id="passo-pronto" class="oculto">
+            <div class="alerta ok">Empresa <strong id="pronto-nome"></strong> cadastrada!</div>
+            <p>Você tem <strong id="pronto-dias"></strong> dias grátis, até <strong id="pronto-vencimento"></strong>.</p>
+            <p>Serial da empresa: <code class="copiar" id="pronto-serial" data-copiar></code></p>
+            <p>Links para usar nos computadores da empresa:</p>
+            <p>Totem (retirar senha):<br><code class="copiar" id="link-totem" data-copiar></code></p>
+            <p>Painel da TV:<br><code class="copiar" id="link-painel" data-copiar></code></p>
+            <p class="texto-cinza">Esses links também ficam na tela de gestão.</p>
+            <a href="/admin.html" class="botao botao-largo">Ir para a gestão da empresa</a>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { api, PAGINA_INICIAL, sair, data, ativarBotoesCopiar } from '/js/app.js';
+    import {
+        iniciarAutenticacao, configPublica, aguardarUsuario, usuarioAtual, entrarComGoogle, criarConta,
+        reenviarConfirmacaoEmail, emailFoiConfirmado, enviarCodigoSms
+    } from '/js/autenticacao.js';
+
+    const $ = id => document.getElementById(id);
+    let confirmacaoSms = null;
+
+    function mostrarPasso(passo) {
+        ['conta', 'confirmar', 'sms', 'empresa', 'pronto'].forEach(p => $('passo-' + p).classList.toggle('oculto', p !== passo));
+    }
+
+    function mensagem(texto, tipo = 'erro') {
+        $('mensagem').className = 'alerta ' + tipo;
+        $('mensagem').textContent = texto;
+    }
+
+    function limparMensagem() {
+        $('mensagem').className = 'alerta oculto';
+    }
+
+    /**
+     * Decide o próximo passo de acordo com a situação de quem está logado:
+     * sem login -> criar acesso; e-mail não confirmado -> confirmar; já tem cadastro -> vai para a sua tela;
+     * sem cadastro -> (SMS, se ativado) -> dados da empresa.
+     */
+    async function proximoPasso() {
+        const usuario = usuarioAtual();
+        if (!usuario) {
+            mostrarPasso('conta');
+            return;
+        }
+        try {
+            const eu = await api('/api/auth/me');
+            window.location.href = PAGINA_INICIAL[eu.perfil]; // já tem cadastro
+        } catch (erro) {
+            if (erro.codigo === 'EMAIL_NAO_VERIFICADO') {
+                $('email-confirmar').textContent = usuario.email;
+                mostrarPasso('confirmar');
+            } else if (erro.codigo === 'SEM_CADASTRO') {
+                if (!usuario.email) {
+                    mensagem('Para cadastrar uma empresa entre com e-mail ou Google.');
+                    mostrarPasso('conta');
+                } else if (configPublica().smsHabilitado && !usuario.telefone) {
+                    mostrarPasso('sms');
+                } else {
+                    $('email-logado').textContent = usuario.email;
+                    if (usuario.telefone) $('telefone').value = usuario.telefone;
+                    mostrarPasso('empresa');
+                }
+            } else {
+                mensagem(erro.message);
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- passo 1: conta
+    $('form-conta').addEventListener('submit', async e => {
+        e.preventDefault();
+        limparMensagem();
+        try {
+            await criarConta($('email').value, $('senha').value);
+            await proximoPasso();
+        } catch (erro) {
+            mensagem(erro.message);
+        }
+    });
+
+    $('btn-google').addEventListener('click', async () => {
+        limparMensagem();
+        try {
+            await entrarComGoogle();
+            await proximoPasso();
+        } catch (erro) {
+            mensagem(erro.message);
+        }
+    });
+
+    $('btn-ja-confirmei').addEventListener('click', async () => {
+        try {
+            if (!await emailFoiConfirmado()) {
+                mensagem('Ainda não identificamos a confirmação. Clique no link do e-mail e tente de novo.');
+                return;
+            }
+            limparMensagem();
+            await proximoPasso();
+        } catch (erro) {
+            mensagem(erro.message);
+        }
+    });
+
+    $('btn-reenviar').addEventListener('click', async () => {
+        try {
+            await reenviarConfirmacaoEmail();
+            mensagem('E-mail reenviado.', 'ok');
+        } catch (erro) {
+            mensagem(erro.message);
+        }
+    });
+
+    // ---------------------------------------------------------------- validação por SMS
+    // Liga o celular à conta (vincular = true): depois disso o login traz o telefone já verificado
+    $('form-sms-enviar').addEventListener('submit', async e => {
+        e.preventDefault();
+        limparMensagem();
+        $('btn-enviar-sms').disabled = true;
+        try {
+            confirmacaoSms = await enviarCodigoSms($('telefone-sms').value, 'recaptcha', true);
+            $('form-sms-enviar').classList.add('oculto');
+            $('form-sms-codigo').classList.remove('oculto');
+            mensagem('Código enviado por SMS.', 'ok');
+        } catch (erro) {
+            mensagem(erro.message);
+        } finally {
+            $('btn-enviar-sms').disabled = false;
+        }
+    });
+
+    $('form-sms-codigo').addEventListener('submit', async e => {
+        e.preventDefault();
+        try {
+            await confirmacaoSms.confirmar($('codigo-sms').value);
+            limparMensagem();
+            await proximoPasso();
+        } catch (erro) {
+            mensagem(erro.message);
+        }
+    });
+
+    // ---------------------------------------------------------------- passo 2: empresa
+    $('passo-empresa').addEventListener('submit', async e => {
+        e.preventDefault();
+        limparMensagem();
+        $('btn-cadastrar').disabled = true;
+        try {
+            const { empresa, licenca } = await api('/api/cadastro/empresa', {
+                metodo: 'POST',
+                corpo: {
+                    razaoSocial: $('razaoSocial').value,
+                    nomeFantasia: $('nomeFantasia').value,
+                    cnpj: $('cnpj').value,
+                    cpfResponsavel: $('cpfResponsavel').value,
+                    nomeResponsavel: $('nomeResponsavel').value,
+                    telefone: $('telefone').value
+                }
+            });
+            $('pronto-nome').textContent = empresa.nomeFantasia;
+            $('pronto-dias').textContent = licenca.diasRestantes;
+            $('pronto-vencimento').textContent = data(licenca.dataVencimento);
+            $('pronto-serial').textContent = licenca.serial;
+            $('link-totem').textContent = `${location.origin}/index.html?empresa=${empresa.slug}`;
+            $('link-painel').textContent = `${location.origin}/painel.html?empresa=${empresa.slug}`;
+            $('titulo').textContent = 'Tudo pronto!';
+            mostrarPasso('pronto');
+        } catch (erro) {
+            mensagem(erro.message);
+        } finally {
+            $('btn-cadastrar').disabled = false;
+        }
+    });
+
+    $('btn-outra-conta').addEventListener('click', () => sair());
+
+    // Máscaras simples de CNPJ e CPF enquanto digita
+    function mascara(campo, formato) {
+        campo.addEventListener('input', () => {
+            const numeros = campo.value.replace(/\D/g, '');
+            let i = 0;
+            campo.value = formato.replace(/#/g, () => numeros[i++] ?? '').replace(/[^\d]+$/, '');
+        });
+    }
+    mascara($('cnpj'), '##.###.###/####-##');
+    mascara($('cpfResponsavel'), '###.###.###-##');
+
+    // ---------------------------------------------------------------- ao abrir
+    try {
+        await iniciarAutenticacao();
+        await aguardarUsuario();
+        ativarBotoesCopiar();
+        await proximoPasso();
+    } catch (erro) {
+        mensagem(erro.message);
+    }
+</script>
+</body>
+</html>

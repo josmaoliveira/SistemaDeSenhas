@@ -43,7 +43,7 @@
 
 <div id="layout">
     <div id="painelCentral">
-        <h1>Painel de Atendimento</h1>
+        <h1 id="nome-empresa">Painel de Atendimento</h1>
         <div id="containerAtivos"></div>
     </div>
 
@@ -56,66 +56,75 @@
 <audio id="audioChamada" src="/audio/chamada.mp3" preload="auto"></audio>
 
 <script>
-    let historico = JSON.parse(localStorage.getItem("historicoSenhas")) || [];
-    let ultimaSenhaCodigo = localStorage.getItem("ultimaSenhaCodigo") || null;
+    // O link do painel diz de qual empresa ele é: /painel.html?empresa=padaria-central
+    const empresa = new URLSearchParams(location.search).get('empresa');
+    const base = '/api/publico/' + encodeURIComponent(empresa || '');
+
+    // Histórico guardado neste navegador, separado por empresa
+    const chaveHistorico = 'historicoSenhas-' + empresa;
+    const chaveUltima = 'ultimaSenha-' + empresa;
+    let historico = JSON.parse(localStorage.getItem(chaveHistorico)) || [];
+    let ultimaSenhaCodigo = localStorage.getItem(chaveUltima) || null;
     let loopSonoro = null;
 
+    /** Cria um elemento com classe e texto (textContent evita HTML malicioso). */
+    function elemento(classe, texto) {
+        const div = document.createElement("div");
+        div.className = classe;
+        div.textContent = texto;
+        return div;
+    }
+
     async function atualizarPainel() {
+        const containerAtivos = document.getElementById("containerAtivos");
         try {
-            // Usa o endpoint correto que retorna atendimentos com fim nulo
-            const response = await fetch('/atendimentos/painel');
-            let atendimentos = await response.json();
+            const resposta = await fetch(base + '/painel');
+            const dados = await resposta.json();
+            if (!resposta.ok) {
+                containerAtivos.innerHTML = "";
+                containerAtivos.appendChild(elemento("titulo", dados.mensagem || "Erro ao carregar o painel."));
+                return;
+            }
 
-            const containerAtivos = document.getElementById("containerAtivos");
-
+            // Itens já vêm do servidor com a chamada mais recente primeiro: { codigo, guiche, inicio }
+            const atendimentos = dados;
             if (atendimentos.length === 0) {
                 containerAtivos.innerHTML = "<h2 style='color:#888;'>Nenhuma senha sendo atendida.</h2>";
                 return;
             }
 
-            // Ordena para que o atendimento iniciado por último fique primeiro
-            atendimentos.sort((a, b) => new Date(b.dataHoraInicio) - new Date(a.dataHoraInicio));
-
             const maisRecente = atendimentos[0];
-            const codigoSenha = maisRecente.senha.codigo;
-            const nomeGuiche = `${maisRecente.guiche.nome}`;
-
-            // Verifica se uma NOVA senha foi chamada para disparar o som e histórico
-            if (codigoSenha !== ultimaSenhaCodigo) {
+            // Chave = senha + horário: uma senha RECHAMADA também toca o som de novo
+            const chaveChamada = maisRecente.codigo + '|' + maisRecente.inicio;
+            if (chaveChamada !== ultimaSenhaCodigo) {
                 executarAlertaReforcado();
-                ultimaSenhaCodigo = codigoSenha;
-                localStorage.setItem("ultimaSenhaCodigo", ultimaSenhaCodigo);
+                ultimaSenhaCodigo = chaveChamada;
+                localStorage.setItem(chaveUltima, ultimaSenhaCodigo);
 
-                const entrada = `${codigoSenha} - ${nomeGuiche}`;
-                if (!historico.includes(entrada)) {
-                    historico.unshift(entrada);
-                    if (historico.length > 10) historico.pop();
-                    localStorage.setItem("historicoSenhas", JSON.stringify(historico));
-                }
+                const entrada = `${maisRecente.codigo} - ${maisRecente.guiche}`;
+                historico = historico.filter(h => h !== entrada);
+                historico.unshift(entrada);
+                if (historico.length > 10) historico.pop();
+                localStorage.setItem(chaveHistorico, JSON.stringify(historico));
                 renderizarHistorico();
             }
 
-            // Renderiza os cards para todos os atendimentos ativos
             containerAtivos.innerHTML = "";
             atendimentos.forEach((atend, index) => {
-                const div = document.createElement("div");
-                // Aplica destaque e piscar apenas no card que acabou de ser chamado
-                const classeDestaque = (index === 0 && loopSonoro !== null) ? "recente piscar" : "";
-                div.className = `card-ativo ${classeDestaque}`;
-
-                div.innerHTML = `
-                    <div class="titulo">Senha</div>
-                    <div class="senha">${atend.senha.codigo}</div>
-                    <div class="guiche">${atend.guiche.nome}</div>
-                `;
-                containerAtivos.appendChild(div);
+                // Destaque e piscar só no card que acabou de ser chamado
+                const destaque = (index === 0 && loopSonoro !== null) ? "recente piscar" : "";
+                const card = elemento(`card-ativo ${destaque}`, "");
+                card.appendChild(elemento("titulo", "Senha"));
+                card.appendChild(elemento("senha", atend.codigo));
+                card.appendChild(elemento("guiche", atend.guiche));
+                containerAtivos.appendChild(card);
             });
-
         } catch (error) {
             console.error("Erro ao carregar painel:", error);
         }
     }
 
+    /** Toca o som 3 vezes (de 10 em 10 segundos) quando uma senha nova é chamada. */
     function executarAlertaReforcado() {
         const som = document.getElementById("audioChamada");
         if (loopSonoro) clearInterval(loopSonoro);
@@ -123,15 +132,14 @@
         let execucoes = 0;
         const tocar = () => {
             som.currentTime = 0;
-            som.play().catch(e => console.log("Interação necessária para áudio"));
+            som.play().catch(() => console.log("Clique na página uma vez para liberar o som"));
             execucoes++;
             if (execucoes >= 3) {
                 clearInterval(loopSonoro);
                 loopSonoro = null;
-                atualizarPainel(); // Atualiza para remover a borda de destaque
+                atualizarPainel(); // tira o destaque
             }
         };
-
         tocar();
         loopSonoro = setInterval(tocar, 10000);
     }
@@ -139,18 +147,27 @@
     function renderizarHistorico() {
         const lista = document.getElementById("lista");
         lista.innerHTML = "";
-        historico.forEach(s => {
-            const div = document.createElement("div");
-            div.className = "item";
-            div.innerText = s;
-            lista.appendChild(div);
-        });
+        historico.forEach(s => lista.appendChild(elemento("item", s)));
     }
 
-    // Intervalo de atualização sincronizado com o tempo de chamada
-    setInterval(atualizarPainel, 2000);
-    atualizarPainel();
-    renderizarHistorico();
+    async function iniciar() {
+        if (!empresa) {
+            document.getElementById("containerAtivos").innerHTML =
+                "<h2 style='color:#b91c1c;'>Link incompleto. Use o link do painel que aparece na tela de gestão da empresa.</h2>";
+            return;
+        }
+        try {
+            const resp = await fetch(base);
+            const dados = await resp.json();
+            if (resp.ok) document.getElementById("nome-empresa").textContent = dados.nomeFantasia;
+        } catch (e) { /* mantém o título padrão */ }
+
+        renderizarHistorico();
+        atualizarPainel();
+        setInterval(atualizarPainel, 2000); // atualiza a cada 2 segundos
+    }
+
+    iniciar();
 </script>
 </body>
 </html>

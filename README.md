@@ -1,293 +1,149 @@
-# 🚀 Sistema de Gestão de Senhas - Patos/PB
+# Sistema de Senhas
 
-Sistema Full Stack desenvolvido para otimizar o fluxo de atendimento em unidades de serviço. A aplicação gerencia desde a emissão de senhas customizadas até o painel de chamadas em tempo real com suporte a múltiplos guichês.
-
----
-
-## 🛠️ Tecnologias Principais
-
-**Backend:** Java 21, Spring Boot 3.2.x, Spring Data JPA, Maven
-**Frontend:** HTML5, CSS3 (Flexbox/Grid), JavaScript (Vanilla)
-**Banco de Dados:** MySQL 8.x
-**Relatórios:** JasperReports (Emissão de tickets)
+Sistema web de **gestão de filas por senha** para várias empresas ao mesmo tempo (multiempresa).
+O cliente retira a senha no **totem**, o **painel da TV** chama com aviso sonoro e o **atendente** opera o guichê.
+Cada empresa tem sua própria gestão, e o **GM** (administrador geral do sistema) controla empresas, licenças e pagamentos.
 
 ---
 
-## 🌟 Diferenciais da Versão Atual
+## Funcionalidades
 
-- **Criação Automática:** O banco de dados e as tabelas são criados automaticamente na primeira execução.
-- **Lógica de Senha Inteligente:** Prefixo baseado nas duas primeiras letras do serviço (ex: CX para Caixa) + sequência de 3 dígitos (ex: CX001).
-- **Painel Multi-Guichê:** Suporte a atendimentos simultâneos com destaque visual e sonoro para a chamada mais recente.
-- **Segurança de Concorrência:** Implementação de _Pessimistic Locking_ para evitar que dois guichês chamem a mesma senha simultaneamente.
+- **Multiempresa:** várias empresas no mesmo sistema e no mesmo banco; cada uma só enxerga os próprios dados.
+- **Login pelo Firebase:** e-mail e senha (com confirmação por e-mail), Google, SMS e "esqueci minha senha".
+- **Cadastro de empresa** com validação de CNPJ e CPF.
+- **Licença por empresa:** 90 dias grátis, serial ligado ao CNPJ e bloqueio automático no vencimento.
+- **Três perfis com telas próprias:** GM, administrador da empresa e atendente.
+- **Fila com prioridade:** maior peso primeiro e, no empate, ordem de chegada; trava contra chamada duplicada.
+- **Painel multi-guichê** com destaque e som para a chamada mais recente.
+- **Impressão do ticket** com JasperReports.
+
+## Tecnologias
+
+| Camada | Tecnologia |
+|---|---|
+| Backend | Java 21, Spring Boot 3.2, Spring Data JPA, Spring Security (OAuth2 Resource Server) |
+| Banco de dados | PostgreSQL 16, Flyway (versionamento das tabelas) |
+| Login | Firebase Authentication (+ Firebase Admin SDK, opcional) |
+| Frontend | HTML, CSS e JavaScript puro (módulos ES) |
+| Relatórios | JasperReports |
+| Testes | JUnit 5, Spring Boot Test, MockMvc |
 
 ---
 
-## ⚙️ Configuração e Execução
+## Como rodar
 
-### 1. Pré-requisitos
+### Pré-requisitos
+- JDK 21
+- PostgreSQL 16
+- Um projeto no Firebase (grátis): veja [`docs/FIREBASE.md`](docs/FIREBASE.md)
 
-- JDK 21 instalado
-- MySQL Server rodando localmente
-
-### 2. Configuração do Banco
-
-A aplicação está configurada para se auto-gerenciar. Você só precisa garantir que as credenciais no arquivo `src/main/resources/application.properties` estejam corretas:
-
+### 1. Banco de dados
+No pgAdmin, crie o banco (uma vez só):
+```sql
+CREATE DATABASE sistemadesenhas_db;
 ```
-spring.datasource.url=jdbc:mysql://localhost:3306/sistemadesenhas_db?createDatabaseIfNotExist=true
-spring.datasource.username=seu_usuario
-spring.datasource.password=sua_senha
-```
+As tabelas são criadas automaticamente pelo Flyway.
 
-### 3. Executando a Aplicação
+### 2. Configuração local
+Copie `src/main/resources/application-local.properties.exemplo` para `application-local.properties`
+(mesma pasta) e preencha a senha do PostgreSQL, as chaves do Firebase e o e-mail do GM.
+Esse arquivo fica só no seu computador (está no `.gitignore`).
 
-Utilize o Maven Wrapper incluso no projeto:
+### 3. Executar
+```bash
+# Windows
+.\mvnw.cmd spring-boot:run
 
-```
-# No Windows
-./mvnw.cmd spring-boot:run
-
-# No Linux/Mac
+# Linux/Mac
 ./mvnw spring-boot:run
 ```
+Acesse `http://localhost:8080/login.html`.
+
+### 4. Testes automáticos
+Crie o banco de testes uma vez (`CREATE DATABASE sistemadesenhas_test;`) e rode:
+```bash
+.\mvnw.cmd test
+```
 
 ---
 
-## 📂 Estrutura de Acesso
+## Telas
 
-Após iniciar, o sistema estará disponível em:
+| Endereço | Quem usa | Para quê |
+|---|---|---|
+| `/login.html` | Todos | Entrar, primeiro acesso (criar senha) e "esqueci minha senha" |
+| `/cadastro.html` | Novo cliente | Cadastrar a empresa (vira o administrador dela) |
+| `/admin.html` | Administrador da empresa | Licença, serviços, prioridades, guichês, equipe e links do totem/painel |
+| `/selecionar-guiche.html`, `/atendente.html` | Atendente | Escolher o guichê e chamar senhas |
+| `/gm.html` | GM | Empresas, pagamentos, usuários, logins e bloqueios |
+| `/index.html?empresa=SLUG` | Clientes | Totem: retirar senha |
+| `/painel.html?empresa=SLUG` | TV | Painel de chamadas |
 
-```
-http://localhost:8080
-```
+Os links do totem e do painel de cada empresa aparecem na tela de gestão.
 
-- `/index.html` → Totem de autoatendimento (emissão de senhas)
-- `/painel.html` → Painel público (TV/monitor de chamadas)
-- `/login.html` → Acesso para atendentes e administradores
-- `/admin.html` → Gestão de serviços, prioridades, guichês e atendentes
+### Primeiros passos
+1. Abra `/cadastro.html`, crie seu acesso e cadastre a empresa.
+2. Na gestão, cadastre serviços, prioridades e guichês.
+3. Em **Equipe**, cadastre o e-mail dos atendentes. Eles entram em `/login.html` > **Primeiro acesso: criar minha senha** (ou com o Google).
+4. Para ser **GM**, coloque seu e-mail em `app.gm-emails` e entre pelo **Primeiro acesso** (ou Google) com ele.
+   Use um e-mail diferente do da sua empresa.
 
 ---
 
-## 🛠️ Manutenção Diária
+## Estrutura do projeto
 
-O administrador possui uma ferramenta exclusiva no painel de gestão para Resetar a Fila. Recomenda-se realizar essa operação ao final de cada expediente para reiniciar a numeração sequencial das senhas para o dia seguinte.
+```
+src/main/java/br/com/sistemadesenhas
+├── config        Segurança, Firebase e regras do sistema (properties)
+├── controller    Rotas da API: publico/ (totem e painel), empresa/, gm/, auth, cadastro, atendimentos
+├── dto           Formatos dos dados que entram e saem da API
+├── entity        Tabelas do banco (e enums em entity/enums)
+├── exception     Erros padronizados e tratador global
+├── repository    Consultas ao banco (sempre filtrando pela empresa)
+├── security      Identidade de quem fez login (o Firebase fica isolado aqui), usuário logado e licença
+├── service       Regras de negócio (e service/conta: Strategy das contas do Firebase)
+└── util          Validação de CPF/CNPJ, telefone e slug
+
+src/main/resources
+├── db/migration  Arquivos do Flyway (V1, V2, ...)
+├── reports       Ticket da senha (JasperReports)
+└── static        Telas HTML, css/estilo.css, js/app.js e js/autenticacao.js (único arquivo que usa o Firebase)
+```
+
+### API (resumo)
+
+| Prefixo | Acesso | Conteúdo |
+|---|---|---|
+| `/api/publico/**` | Livre | Configuração do Firebase, totem e painel (por slug da empresa) |
+| `/api/auth/me`, `/api/cadastro/**` | Logado no Firebase | Quem sou eu, cadastro de empresa |
+| `/api/empresa/**` | Administrador da empresa | Serviços, prioridades, guichês, equipe, licença, atendimento de hoje, reset da fila |
+| `/api/atendimentos/**` | Administrador e atendente | Chamar, rechamar e finalizar senhas; presença no guichê |
+| `/api/gm/**` | GM | Empresas, pagamentos, usuários, logins e resumo |
+
+Erros sempre no formato `{ "status": 404, "codigo": "NAO_ENCONTRADO", "mensagem": "..." }`.
+Licença vencida ou bloqueada responde **402**.
 
 ---
 
-## 📘 Relatório de Refatoração com Padrões de Projeto
+## Licença das empresas
 
-Esta refatoração foi feita com base em problemas reais do código, e não apenas para cumprir a exigência acadêmica. A ideia foi separar responsabilidades, reduzir acoplamento e deixar o comportamento do sistema mais fácil de evoluir e testar.
+- Empresa nova ganha **90 dias grátis** (`app.licenca.dias-gratis`).
+- O **serial** (`XXXX-XXXX-XXXX-XXXX`) é calculado a partir do CNPJ com um segredo do servidor (`SERIAL_SEGREDO`).
+- Vencida ou bloqueada: totem, painel e atendimento param; o administrador continua vendo a licença.
+- O GM registra pagamentos, que somam dias ao vencimento.
 
-### 1. Padrão Criacional: Factory
+## Manutenção diária
 
-#### Problema antes da refatoração
+O administrador da empresa tem o botão **Resetar fila** na gestão, para reiniciar a numeração ao fim do expediente.
 
-A criação de `Senha` estava misturada com a regra de negócio em `SenhaService`. O serviço calculava o código da senha e também montava o objeto inteiro, acumulando responsabilidades e dificultando manutenção.
+---
 
-#### Padrão escolhido
+## Documentação
 
-`Factory`.
-
-#### Por que esse padrão era adequado
-
-Porque a criação de `Senha` passou a ter um ponto centralizado. Se a estrutura do objeto mudar no futuro, a alteração fica concentrada em uma única classe.
-
-#### Trecho antes
-
-```java
-String prefixo = servico.getSigla().substring(0, 2).toUpperCase();
-long totalParaServico = senhaRepository.countByServicoId(servicoId);
-String sequencia = String.format("%03d", totalParaServico + 1);
-
-String codigoGerado = prefixo + sequencia;
-
-Senha novaSenha = new Senha();
-novaSenha.setServico(servico);
-novaSenha.setPrioridade(prioridade);
-novaSenha.setDataHoraGeracao(LocalDateTime.now());
-novaSenha.setStatus(StatusSenha.AGUARDANDO);
-novaSenha.setCodigo(codigoGerado);
-
-return senhaRepository.save(novaSenha);
-```
-
-#### Trecho depois
-
-```java
-String prefixo = servico.getSigla().substring(0, 2).toUpperCase();
-long totalParaServico = senhaRepository.countByServicoId(servicoId);
-String sequencia = String.format("%03d", totalParaServico + 1);
-
-String codigoGerado = prefixo + sequencia;
-
-Senha novaSenha = senhaFactory.criarSenha(servico, prioridade, codigoGerado);
-
-return senhaRepository.save(novaSenha);
-```
-
-#### Código novo aplicado
-
-```java
-public Senha criarSenha(Servico servico, Prioridade prioridade, String codigo) {
-	Senha nova = new Senha();
-	nova.setServico(servico);
-	nova.setPrioridade(prioridade);
-	nova.setDataHoraGeracao(LocalDateTime.now());
-	nova.setStatus(StatusSenha.AGUARDANDO);
-	nova.setCodigo(codigo);
-	return nova;
-}
-```
-
-#### Vantagens
-
-- Separa criação de objeto da regra de negócio.
-- Facilita testes unitários.
-- Simplifica futuras alterações na criação da senha.
-
-#### Desvantagens
-
-- Introduz uma classe a mais.
-- Pode parecer exagero em cenários muito simples.
-
-### 2. Padrão Estrutural: Facade/Adapter para impressão
-
-#### Problema antes da refatoração
-
-`ImpressaoService` conhecia detalhes da biblioteca JasperReports. Isso criava acoplamento direto com uma API externa e deixava o serviço menos flexível.
-
-#### Padrão escolhido
-
-`Facade` com uma interface de adaptação para o Jasper.
-
-#### Por que esse padrão era adequado
-
-Porque o restante do sistema passou a falar apenas com uma abstração simples (`ReportPrinter`), sem depender dos detalhes do JasperReports.
-
-#### Trecho antes
-
-```java
-InputStream reportStream = getClass().getResourceAsStream("/reports/senha.jasper");
-
-Map<String, Object> parametros = new HashMap<>();
-parametros.put("CODIGO", senha.getCodigo());
-parametros.put("SERVICO", senha.getServico().getNome());
-
-JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(Collections.singletonList(senha));
-
-JasperPrint jasperPrint = JasperFillManager.fillReport(reportStream, parametros, dataSource);
-JasperPrintManager.printReport(jasperPrint, false);
-```
-
-#### Trecho depois
-
-```java
-@Autowired
-private ReportPrinter reportPrinter;
-
-public void imprimirSenhaSilenciosa(Senha senha) {
-	reportPrinter.printSenha(senha);
-}
-```
-
-#### Código novo aplicado
-
-```java
-public interface ReportPrinter {
-	void printSenha(Senha senha);
-}
-```
-
-```java
-@Service
-public class JasperReportPrinter implements ReportPrinter {
-
-	@Override
-	public void printSenha(Senha senha) {
-		// integração com JasperReports isolada aqui
-	}
-}
-```
-
-#### Vantagens
-
-- Reduz acoplamento com a biblioteca de relatório.
-- Facilita testes com mock da interface.
-- Permite trocar o mecanismo de impressão sem mexer no serviço de negócio.
-
-#### Desvantagens
-
-- Adiciona uma camada extra de abstração.
-- Exige decidir qual implementação será injetada.
-
-### 3. Padrão Comportamental: Strategy
-
-#### Problema antes da refatoração
-
-A forma de escolher a próxima senha estava embutida em `AtendimentoService`, o que torna difícil mudar a política de seleção no futuro (por exemplo, FIFO, prioridade por peso, regras por guichê etc.).
-
-#### Padrão escolhido
-
-`Strategy`.
-
-#### Por que esse padrão era adequado
-
-Porque a seleção da próxima senha é um comportamento que pode variar. Com Strategy, o algoritmo fica isolado e pode ser substituído sem alterar a classe principal do atendimento.
-
-#### Trecho antes
-
-```java
-List<Senha> fila = senhaRepository.encontrarProximaSenha(guiche.getServico());
-```
-
-#### Trecho depois
-
-```java
-@Autowired
-private NextSenhaStrategy nextSenhaStrategy;
-
-List<Senha> fila = nextSenhaStrategy.encontrarProxima(guiche.getServico());
-```
-
-#### Código novo aplicado
-
-```java
-public interface NextSenhaStrategy {
-	List<Senha> encontrarProxima(Servico servico);
-}
-```
-
-```java
-@Service
-public class PrioridadeStrategy implements NextSenhaStrategy {
-
-	@Autowired
-	private SenhaRepository senhaRepository;
-
-	@Override
-	public List<Senha> encontrarProxima(Servico servico) {
-		return senhaRepository.encontrarProximaSenha(servico);
-	}
-}
-```
-
-#### Vantagens
-
-- Permite trocar a política de seleção com baixo impacto.
-- Torna o comportamento mais explícito.
-- Facilita testes de algoritmos diferentes.
-
-#### Desvantagens
-
-- Mais classes no projeto.
-- Se houver muitas estratégias, será preciso gerenciar melhor a seleção da implementação.
-
-### Conclusão
-
-Os três padrões foram aplicados em pontos onde havia problema real de design:
-
-- `Factory` para organizar criação de objetos.
-- `Facade/Adapter` para encapsular a biblioteca de impressão.
-- `Strategy` para permitir variação no algoritmo de seleção da próxima senha.
-
-Com isso, o código ficou mais modular, mais fácil de testar e mais preparado para mudanças futuras.
+| Documento | Conteúdo |
+|---|---|
+| [`docs/FIREBASE.md`](docs/FIREBASE.md) | Configurar o login, o GM e a conta de serviço |
+| [`docs/ANTES-DE-COLOCAR-ONLINE.md`](docs/ANTES-DE-COLOCAR-ONLINE.md) | Lista obrigatória antes de publicar |
+| [`docs/ETAPAS.md`](docs/ETAPAS.md) | Histórico do que foi feito em cada etapa |
+| [`docs/PADROES.md`](docs/PADROES.md) | Padrões de código, comentários e multiempresa |
+| [`docs/RELATORIO-PADROES-DE-PROJETO.md`](docs/RELATORIO-PADROES-DE-PROJETO.md) | Relatório da refatoração com Factory, Facade e Strategy |

@@ -2,52 +2,291 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Login - Sistema de Senhas</title>
-    <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f2f5; margin: 0; }
-        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 350px; }
-        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 4px; border: 1px solid #ddd; box-sizing: border-box; }
-        button { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar - Sistema de Senhas</title>
+    <link rel="stylesheet" href="/css/estilo.css">
 </head>
 <body>
-<div class="card">
-    <h2>Acesso Restrito</h2>
-    <form onsubmit="event.preventDefault(); fazerLogin();">
-        <input type="text" id="username" placeholder="Usuário" required>
-        <input type="password" id="password" placeholder="Senha" required>
+<div class="centralizado">
+    <div class="cartao caixa-login">
+        <h2 id="titulo">Entrar</h2>
+        <div id="mensagem" class="alerta oculto"></div>
 
-        <button type="submit">ENTRAR</button>
-    </form>
+        <!-- ============ ENTRAR ============ -->
+        <div id="modo-entrar">
+            <form id="form-entrar">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" autocomplete="email" required>
+                <label for="senha">Senha</label>
+                <input type="password" id="senha" autocomplete="current-password" required>
+                <button type="submit" class="botao-largo">Entrar</button>
+            </form>
+            <p style="text-align:right; margin: 8px 0 0;">
+                <a href="#" id="link-esqueci">Esqueci minha senha</a>
+            </p>
+
+            <div class="separador">ou</div>
+            <button type="button" id="btn-google" class="google botao-largo">Entrar com o Google</button>
+            <button type="button" id="btn-ir-sms" class="secundario botao-largo oculto">Entrar com o celular (SMS)</button>
+
+            <div class="separador">primeira vez aqui?</div>
+            <button type="button" id="btn-primeiro-acesso" class="secundario botao-largo">Primeiro acesso: criar minha senha</button>
+            <p class="texto-cinza" style="text-align:center; margin-top:6px;">
+                Para quem foi cadastrado pela empresa ou é GM e ainda não tem senha.
+            </p>
+            <a href="/cadastro.html" class="botao sucesso botao-largo">Cadastrar minha empresa</a>
+        </div>
+
+        <!-- ============ PRIMEIRO ACESSO (criar senha) ============ -->
+        <div id="modo-primeiro" class="oculto">
+            <p class="texto-cinza">
+                Use o e-mail que foi cadastrado para você (pelo administrador da empresa ou como GM).
+                Depois você vai receber um e-mail para confirmar.
+            </p>
+            <form id="form-primeiro">
+                <label for="email-novo">E-mail</label>
+                <input type="email" id="email-novo" autocomplete="email" required>
+                <label for="senha-nova">Crie uma senha (mínimo 6 caracteres)</label>
+                <input type="password" id="senha-nova" autocomplete="new-password" minlength="6" required>
+                <button type="submit" class="botao-largo">Criar minha senha</button>
+            </form>
+            <p class="texto-cinza">Ou simplesmente use "Entrar com o Google" com esse e-mail.</p>
+            <button type="button" class="secundario botao-largo voltar">Voltar</button>
+        </div>
+
+        <!-- ============ ESQUECI A SENHA ============ -->
+        <div id="modo-esqueci" class="oculto">
+            <p class="texto-cinza">Informe seu e-mail. Enviaremos um link para você criar uma nova senha.</p>
+            <form id="form-esqueci">
+                <label for="email-esqueci">E-mail</label>
+                <input type="email" id="email-esqueci" autocomplete="email" required>
+                <button type="submit" class="botao-largo">Enviar link</button>
+            </form>
+            <button type="button" class="secundario botao-largo voltar">Voltar</button>
+        </div>
+
+        <!-- ============ SMS ============ -->
+        <div id="modo-sms" class="oculto">
+            <p class="texto-cinza">Funciona para quem tem o celular cadastrado pelo administrador.</p>
+            <form id="form-sms-enviar">
+                <label for="telefone">Celular com DDD</label>
+                <input type="tel" id="telefone" placeholder="83999990000" required>
+                <button type="submit" id="btn-enviar-sms" class="botao-largo">Enviar código</button>
+            </form>
+            <form id="form-sms-codigo" class="oculto">
+                <label for="codigo-sms">Código recebido por SMS</label>
+                <input type="text" id="codigo-sms" inputmode="numeric" maxlength="6" required>
+                <button type="submit" class="botao-largo">Confirmar</button>
+            </form>
+            <button type="button" class="secundario botao-largo voltar">Voltar</button>
+        </div>
+
+        <!-- ============ E-MAIL NÃO CONFIRMADO ============ -->
+        <div id="modo-confirmar" class="oculto">
+            <p>Enviamos um link de confirmação para <strong id="email-confirmar"></strong>.</p>
+            <p class="texto-cinza">Abra o e-mail (veja também o spam), clique no link e depois clique abaixo.</p>
+            <button type="button" id="btn-ja-confirmei" class="botao-largo">Já confirmei meu e-mail</button>
+            <button type="button" id="btn-reenviar" class="secundario botao-largo">Reenviar e-mail</button>
+            <button type="button" class="secundario botao-largo sair">Usar outra conta</button>
+        </div>
+
+        <!-- recaptcha invisível exigido pelo Firebase para enviar SMS -->
+        <div id="recaptcha"></div>
+    </div>
 </div>
 
-<script>
-    async function fazerLogin() {
-        const credenciais = {
-            username: document.getElementById('username').value,
-            password: document.getElementById('password').value
-        };
+<script type="module">
+    import { api, PAGINA_INICIAL, sair } from '/js/app.js';
+    import {
+        iniciarAutenticacao, configPublica, aguardarUsuario, usuarioAtual, entrarComEmail, entrarComGoogle, criarConta,
+        reenviarConfirmacaoEmail, emailFoiConfirmado, enviarRedefinicaoSenha, enviarCodigoSms, sairDaConta
+    } from '/js/autenticacao.js';
 
-        const response = await fetch('/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(credenciais)
-        });
+    const $ = id => document.getElementById(id);
+    let confirmacaoSms = null;
 
-        if (response.ok) {
-            const atendente = await response.json();
-            // Salvamos o atendente no navegador para saber quem está logado
-            localStorage.setItem('atendente', JSON.stringify(atendente));
+    // ---------------------------------------------------------------- telas (modos)
+    const modos = ['entrar', 'primeiro', 'esqueci', 'sms', 'confirmar'];
+    const titulos = { entrar: 'Entrar', primeiro: 'Primeiro acesso', esqueci: 'Esqueci minha senha',
+                      sms: 'Entrar com SMS', confirmar: 'Confirme seu e-mail' };
 
-            // Se for admin, pode ir para a tela de gestão, senão vai para os guichês
-            if (atendente.admin) {
-                window.location.href = "/admin.html";
+    function mostrarModo(modo) {
+        modos.forEach(m => $('modo-' + m).classList.toggle('oculto', m !== modo));
+        $('titulo').textContent = titulos[modo];
+    }
+
+    /** Mostra uma mensagem no topo do cartão. tipo: erro | info | ok. Aceita HTML só do próprio código. */
+    function mensagem(texto, tipo = 'erro', html = false) {
+        const caixa = $('mensagem');
+        caixa.className = 'alerta ' + tipo;
+        if (html) caixa.innerHTML = texto; else caixa.textContent = texto;
+    }
+
+    function limparMensagem() {
+        $('mensagem').className = 'alerta oculto';
+    }
+
+    // ---------------------------------------------------------------- depois do login no Firebase
+
+    /**
+     * O serviço de login já aceitou a pessoa. Agora perguntamos ao NOSSO servidor quem é essa pessoa
+     * (perfil e empresa) e levamos para a tela certa.
+     */
+    async function depoisDoLogin() {
+        try {
+            const eu = await api('/api/auth/me?login=true');
+            window.location.href = PAGINA_INICIAL[eu.perfil];
+        } catch (erro) {
+            if (erro.codigo === 'EMAIL_NAO_VERIFICADO') {
+                $('email-confirmar').textContent = usuarioAtual().email;
+                limparMensagem();
+                mostrarModo('confirmar');
+            } else if (erro.codigo === 'SEM_CADASTRO') {
+                mensagem('Você ainda não tem cadastro. <a href="/cadastro.html">Cadastre sua empresa</a> ' +
+                    'ou peça ao administrador da sua empresa para cadastrar o seu e-mail.', 'info', true);
+                mostrarModo('entrar');
             } else {
-                window.location.href = "/selecionar-guiche.html";
+                // Ex.: usuário desativado. Sai da conta e mostra o motivo.
+                await sairDaConta();
+                mensagem(erro.message);
+                mostrarModo('entrar');
             }
-        } else {
-            alert("Usuário ou senha incorretos.");
         }
+    }
+
+    // ---------------------------------------------------------------- ações
+
+    $('form-entrar').addEventListener('submit', async e => {
+        e.preventDefault();
+        limparMensagem();
+        try {
+            await entrarComEmail($('email').value, $('senha').value);
+            await depoisDoLogin();
+        } catch (erro) {
+            if (erro.codigo === 'CREDENCIAL_INVALIDA') {
+                mensagem('E-mail ou senha incorretos. Se é a primeira vez que você entra, ' +
+                    'clique em "Primeiro acesso: criar minha senha".');
+            } else {
+                mensagem(erro.message);
+            }
+        }
+    });
+
+    $('btn-google').addEventListener('click', async () => {
+        limparMensagem();
+        try {
+            await entrarComGoogle();
+            await depoisDoLogin();
+        } catch (erro) {
+            mensagem(erro.message);
+        }
+    });
+
+    // Primeiro acesso: cria a conta e envia o e-mail de confirmação
+    $('form-primeiro').addEventListener('submit', async e => {
+        e.preventDefault();
+        limparMensagem();
+        try {
+            await criarConta($('email-novo').value, $('senha-nova').value);
+            $('email-confirmar').textContent = usuarioAtual().email;
+            mostrarModo('confirmar');
+        } catch (erro) {
+            if (erro.codigo === 'EMAIL_EM_USO') {
+                // A conta já existe: o caminho certo é redefinir a senha
+                $('email-esqueci').value = $('email-novo').value.trim();
+                mostrarModo('esqueci');
+                mensagem('Este e-mail já tem senha. Se não lembra dela, clique em "Enviar link" para criar uma nova.', 'info');
+            } else {
+                mensagem(erro.message);
+            }
+        }
+    });
+
+    $('form-esqueci').addEventListener('submit', async e => {
+        e.preventDefault();
+        try {
+            await enviarRedefinicaoSenha($('email-esqueci').value);
+            mensagem('Se esse e-mail tiver conta, você vai receber o link em instantes (veja também o spam).', 'ok');
+            mostrarModo('entrar');
+        } catch (erro) {
+            mensagem(erro.message);
+        }
+    });
+
+    // Confirmação de e-mail: confere se o link já foi clicado
+    $('btn-ja-confirmei').addEventListener('click', async () => {
+        try {
+            if (!await emailFoiConfirmado()) {
+                mensagem('Ainda não identificamos a confirmação. Clique no link do e-mail e tente de novo.');
+                return;
+            }
+            await depoisDoLogin();
+        } catch (erro) {
+            mensagem(erro.message);
+        }
+    });
+
+    $('btn-reenviar').addEventListener('click', async () => {
+        try {
+            await reenviarConfirmacaoEmail();
+            mensagem('E-mail reenviado.', 'ok');
+        } catch (erro) {
+            mensagem(erro.message);
+        }
+    });
+
+    // SMS: entra com o celular (o reCAPTCHA invisível fica na div "recaptcha")
+    $('form-sms-enviar').addEventListener('submit', async e => {
+        e.preventDefault();
+        limparMensagem();
+        $('btn-enviar-sms').disabled = true;
+        try {
+            confirmacaoSms = await enviarCodigoSms($('telefone').value, 'recaptcha');
+            $('form-sms-enviar').classList.add('oculto');
+            $('form-sms-codigo').classList.remove('oculto');
+            mensagem('Código enviado por SMS.', 'ok');
+        } catch (erro) {
+            mensagem(erro.message);
+        } finally {
+            $('btn-enviar-sms').disabled = false;
+        }
+    });
+
+    $('form-sms-codigo').addEventListener('submit', async e => {
+        e.preventDefault();
+        try {
+            await confirmacaoSms.confirmar($('codigo-sms').value);
+            await depoisDoLogin();
+        } catch (erro) {
+            mensagem(erro.message);
+        }
+    });
+
+    // Navegação entre os modos
+    $('link-esqueci').addEventListener('click', e => { e.preventDefault(); limparMensagem(); mostrarModo('esqueci'); });
+    $('btn-primeiro-acesso').addEventListener('click', () => {
+        limparMensagem();
+        $('email-novo').value = $('email').value.trim();
+        mostrarModo('primeiro');
+    });
+    $('btn-ir-sms').addEventListener('click', () => { limparMensagem(); mostrarModo('sms'); });
+    document.querySelectorAll('.voltar').forEach(b => b.addEventListener('click', () => { limparMensagem(); mostrarModo('entrar'); }));
+    document.querySelectorAll('.sair').forEach(b => b.addEventListener('click', () => sair()));
+
+    // ---------------------------------------------------------------- ao abrir a página
+    try {
+        await iniciarAutenticacao();
+        if (configPublica().smsHabilitado) $('btn-ir-sms').classList.remove('oculto');
+
+        const erroUrl = new URLSearchParams(location.search).get('erro');
+        if (erroUrl) {
+            mensagem(erroUrl);
+        } else if (await aguardarUsuario()) {
+            // Já estava logado: segue direto
+            await depoisDoLogin();
+        }
+    } catch (erro) {
+        mensagem(erro.message);
     }
 </script>
 </body>
